@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One Environment, N Machines</title>
+<meta name="description" content="Deterministic builds for humans and agents. All Things Open 2026. 20 minute talk deck with emulated terminal demos.">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #121721;
+    --panel-2: #192030;
+    --line: #273042;
+    --text: #e8edf5;
+    --muted: #8d98ab;
+    --dim: #5b667a;
+    --accent: #f6b73c;
+    --green: #4ade80;
+    --purple: #b48cff;
+    --blue: #7cc4ff;
+    --red: #ff7b72;
+    --mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
+  #stage-wrap { position: fixed; inset: 0; display: grid; place-items: center; }
+  #stage { width: 1600px; height: 900px; position: relative; transform-origin: center center; }
+  .slide { position: absolute; inset: 0; padding: 72px 96px; display: none; flex-direction: column; }
+  .slide.active { display: flex; animation: fade .25s ease-out; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
+
+  .kicker { font-family: var(--mono); color: var(--accent); font-size: 22px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 18px; }
+  h1 { font-size: 84px; line-height: 1.02; margin: 0 0 24px; font-weight: 700; letter-spacing: -0.02em; }
+  h2 { font-size: 56px; line-height: 1.08; margin: 0 0 36px; font-weight: 700; letter-spacing: -0.015em; }
+  .sub { font-size: 34px; color: var(--muted); line-height: 1.35; max-width: 1200px; }
+  .fill { flex: 1; }
+  .foot { display: flex; justify-content: space-between; color: var(--muted); font-size: 22px; font-family: var(--mono); }
+
+  /* title */
+  .slide.title { justify-content: center; }
+  .slide.title h1 { font-size: 104px; max-width: 1300px; }
+  .slide.title .who { margin-top: 48px; font-size: 30px; color: var(--muted); display: flex; gap: 28px; align-items: baseline; }
+  .slide.title .who b { color: var(--text); font-weight: 600; }
+
+  /* statement */
+  .slide.statement { justify-content: center; }
+  .slide.statement h1 { font-size: 92px; max-width: 1360px; }
+
+  /* section */
+  .slide.section { justify-content: center; }
+  .slide.section .kicker { font-size: 28px; }
+  .slide.section h1 { font-size: 120px; }
+
+  /* bullets */
+  ul.big { list-style: none; padding: 0; margin: 0; font-size: 38px; line-height: 1.35; }
+  ul.big li { padding: 18px 0 18px 54px; position: relative; border-top: 1px solid var(--line); }
+  ul.big li:first-child { border-top: 0; }
+  ul.big li::before { content: "›"; position: absolute; left: 10px; color: var(--accent); font-family: var(--mono); }
+  ul.big li small { display: block; color: var(--muted); font-size: 28px; margin-top: 4px; }
+
+  /* cards */
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-top: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 30px 28px; min-height: 300px; display: flex; flex-direction: column; }
+  .card .ico { font-size: 44px; margin-bottom: 18px; font-family: var(--mono); color: var(--accent); }
+  .card h3 { margin: 0 0 12px; font-size: 32px; }
+  .card p { margin: 0; color: var(--muted); font-size: 24px; line-height: 1.35; }
+  .card .tag { margin-top: auto; padding-top: 18px; font-family: var(--mono); font-size: 20px; color: var(--purple); }
+  .cards.two { grid-template-columns: 1fr 1fr; }
+  .cards.two .card { min-height: 0; }
+  .cards.two .card p { font-size: 28px; }
+  .cards.two .card h3 { font-size: 40px; }
+
+  /* columns */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  .col h3 { font-size: 34px; margin: 0 0 18px; color: var(--accent); }
+  .col ul { margin: 0; padding: 0; list-style: none; font-size: 30px; line-height: 1.5; }
+  .col li code { font-family: var(--mono); background: var(--panel); border: 1px solid var(--line); padding: 2px 10px; border-radius: 8px; font-size: 26px; color: var(--blue); }
+
+  /* diagram */
+  .flow { display: flex; align-items: center; gap: 18px; margin: 30px 0 20px; }
+  .node { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 26px 28px; text-align: center; flex: 1; }
+  .node .n { font-family: var(--mono); font-size: 28px; color: var(--text); }
+  .node .d { color: var(--muted); font-size: 22px; margin-top: 8px; }
+  .node.hi { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .arrow { font-size: 44px; color: var(--accent); font-family: var(--mono); }
+  .outs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 14px; }
+  .outs .node .n { color: var(--purple); }
+  .triple { display: flex; gap: 48px; margin-top: 44px; font-size: 40px; font-weight: 600; }
+  .triple span { color: var(--green); }
+  .triple span::before { content: "✔ "; }
+
+  /* code */
+  pre.code { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 30px 36px; font-family: var(--mono); font-size: 25px; line-height: 1.45; overflow: hidden; color: var(--text); }
+  .k { color: var(--blue); } .s { color: var(--green); } .c { color: var(--muted); } .h { color: var(--accent); } .sec { color: var(--purple); }
+
+  /* terminal */
+  .termwrap { flex: 1; display: grid; gap: 22px; min-height: 0; }
+  .termwrap.three { grid-template-columns: repeat(3, 1fr); }
+  .term { background: #0a0c11; border: 1px solid var(--line); border-radius: 16px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+  .term .bar { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: var(--panel-2); border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 20px; color: var(--muted); }
+  .term .bar .dots { display: flex; gap: 8px; margin-right: 10px; }
+  .term .bar .dots i { width: 14px; height: 14px; border-radius: 50%; display: block; background: #ff5f57; }
+  .term .bar .dots i:nth-child(2) { background: #febc2e; } .term .bar .dots i:nth-child(3) { background: #28c840; }
+  .term .bar .host { color: var(--text); }
+  .term .bar .sys { margin-left: auto; color: var(--purple); }
+  .term .body { flex: 1; padding: 22px 26px; font-family: var(--mono); font-size: 25px; line-height: 1.42; white-space: pre-wrap; overflow: hidden; color: #d7dee9; }
+  .termwrap.three .term .body { font-size: 20px; padding: 18px 20px; }
+  .termwrap.three .term .bar { font-size: 17px; }
+  .line.cmd { color: var(--text); }
+  .ps { color: var(--accent); font-weight: 600; }
+  .ps.flox { color: var(--purple); }
+  .ok { color: var(--green); } .warn { color: var(--accent); } .info { color: var(--blue); } .dim { color: var(--muted); } .hash { color: var(--purple); } .em { color: var(--accent); }
+  .cursor { display: inline-block; width: .6em; height: 1.1em; background: var(--accent); vertical-align: -0.2em; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .out { opacity: 0; animation: reveal .18s ease-out forwards; }
+  @keyframes reveal { to { opacity: 1; } }
+  .term .hint { position: absolute; right: 120px; bottom: 56px; font-family: var(--mono); color: var(--muted); font-size: 18px; }
+
+  /* hud */
+  #hud { position: fixed; left: 0; right: 0; bottom: 0; height: 6px; background: rgba(255,255,255,.06); }
+  #hud i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s; }
+  #meta { position: fixed; right: 18px; bottom: 14px; font-family: var(--mono); font-size: 14px; color: var(--muted); display: flex; gap: 18px; opacity: .85; }
+  #meta b { color: var(--text); font-weight: 600; }
+  #meta .late { color: var(--red); }
+  #notes { position: fixed; left: 0; right: 0; bottom: 0; max-height: 38vh; background: rgba(10,12,17,.96); border-top: 1px solid var(--line); padding: 20px 36px 28px; font-size: 18px; line-height: 1.5; color: var(--text); overflow: auto; display: none; backdrop-filter: blur(8px); }
+  #notes.show { display: block; }
+  #notes h4 { margin: 0 0 8px; font-family: var(--mono); color: var(--accent); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+  #help { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: none; place-items: center; }
+  #help.show { display: grid; }
+  #help div { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 28px 36px; font-family: var(--mono); font-size: 18px; line-height: 1.8; }
+  #help kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="stage-wrap"><div id="stage"></div></div>
+<div id="hud"><i></i></div>
+<div id="meta"><span id="clock"></span><span id="target"></span><span id="counter"></span></div>
+<div id="notes"></div>
+<div id="help"><div>
+  <kbd>→</kbd> <kbd>space</kbd> next step / slide &nbsp; <kbd>←</kbd> previous slide<br>
+  <kbd>n</kbd> speaker notes &nbsp; <kbd>t</kbd> start / reset the talk clock &nbsp; <kbd>f</kbd> fullscreen<br>
+  <kbd>home</kbd> / <kbd>end</kbd> first / last slide &nbsp; <kbd>?</kbd> this help
+</div></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Slide content. Every terminal output below was captured from a real run of
+// this repository on 2026-10-16 with flox 1.18.0 (see README). The only
+// emulated parts are the two remote machines and `flox push`, which need a
+// FloxHub account and are marked in the speaker notes.
+// ---------------------------------------------------------------------------
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+const MANIFEST = `<span class="k">schema-version</span> = <span class="s">"1.18.0"</span>
+
+<span class="c"># One file. Runtimes, the database, the agent's harness,</span>
+<span class="c"># the services, and the build all live here.</span>
+
+<span class="sec">[install]</span>
+<span class="k">python3</span>.pkg-path = <span class="s">"python3"</span>        <span class="c"># runtime</span>
+<span class="k">python3</span>.version  = <span class="s">"3.14"</span>
+<span class="k">redis</span>.pkg-path   = <span class="s">"redis"</span>          <span class="c"># database</span>
+<span class="k">jq</span>.pkg-path      = <span class="s">"jq"</span>
+<span class="k">claude-code</span>.pkg-path = <span class="s">"claude-code"</span> <span class="c"># the agent's harness</span>
+
+<span class="sec">[vars]</span>
+<span class="k">APP_PORT</span>   = <span class="s">"8080"</span>
+<span class="k">REDIS_PORT</span> = <span class="s">"6379"</span>
+
+<span class="sec">[services.redis]</span>
+<span class="k">command</span> = <span class="s">"redis-server --port $REDIS_PORT --dir $FLOX_ENV_CACHE/redis --save ''"</span>
+
+<span class="sec">[services.app]</span>
+<span class="k">command</span> = <span class="s">"python3 app.py"</span>
+
+<span class="sec">[build.app]</span>
+<span class="k">version</span> = <span class="s">"0.1.0"</span>
+<span class="k">command</span> = <span class="s">'''
+  mkdir -p $out/bin
+  cp app.py $out/bin/app
+  chmod +x $out/bin/app
+'''</span>
+<span class="k">sandbox</span> = <span class="s">"pure"</span>                       <span class="c"># hermetic</span>
+<span class="k">runtime-packages</span> = [<span class="s">"python3"</span>, <span class="s">"redis"</span>]
+
+<span class="sec">[options]</span>
+<span class="k">systems</span> = [<span class="s">"aarch64-darwin"</span>, <span class="s">"aarch64-linux"</span>, <span class="s">"x86_64-linux"</span>]`;
+
+const REPORT_JSON = `{
+  "service": "ato-demo",
+  "version": "0.1.0",
+  "python": "3.14.7",
+  "system": "arm64-darwin",
+  "flox_env": "~/deterministic-builds-ATO/.flox/run/aarch64-darwin.deterministic-builds-ato-dev",
+  "redis": <span class="ok">"PONG"</span>
+}`;
+
+const LIST_OUT = `claude-code: claude-code (2.1.296)
+jq: jq (1.8.2)
+python3: python3 (3.14.7)
+redis: redis (8.10.2)`;
+
+const slides = [
+  // 0 ------------------------------------------------------------- 0:00
+  { type: 'title', t: 0,
+    kicker: 'All Things Open 2026 · Raleigh',
+    title: 'One Environment,<br>N Machines',
+    sub: 'Deterministic builds for humans <em>and</em> agents',
+    who: ['<b>Justin Castilla</b>', 'Developer Advocate, Flox', '@justincastilla'],
+    notes: `Open with the premise, not the product. "Raise your hand if the last environment you used was set up by a human." Most hands stay down. <b>Target: be off this slide by 1:00.</b>` },
+
+  // 1 ------------------------------------------------------------- 1:00
+  { type: 'cards', t: 1,
+    kicker: 'The problem',
+    title: 'Where is your software being built?',
+    cards: [
+      { ico: '⌨', h: 'A laptop', p: 'Set up by a person. Slowly. Once. Then drifted for two years.', tag: 'set up by: a human' },
+      { ico: '⟳', h: 'A fleet of CI runners', p: 'Set up by a YAML file and whatever the base image had that morning.', tag: 'set up by: a script' },
+      { ico: '▣', h: 'A local sandbox', p: 'Set up by a container image someone built, somewhere, from a Dockerfile nobody reads.', tag: 'set up by: an image' },
+      { ico: '✦', h: 'A remote sandbox', p: 'Set up by the agent that is about to run your tests in it. It is guessing.', tag: 'set up by: the agent' },
+    ],
+    foot: ['Four machines, four setup stories, one codebase.', '1:00'],
+    notes: `Walk the four cards left to right. The punchline is the fourth card: the machine is now set up by the thing that is about to use it. <b>Hold until ~2:30.</b>` },
+
+  // 2 ------------------------------------------------------------- 2:30
+  { type: 'statement', t: 2.5,
+    title: 'Nobody sets these machines up by hand anymore.',
+    sub: 'And when they do, every one of them does it a little differently.',
+    notes: `One beat. Let it land. Then: "so what does setup actually look like today?" and advance.` },
+
+  // 3 ------------------------------------------------------------- 3:00
+  { type: 'code', t: 3,
+    kicker: 'Setup, today',
+    title: 'Four machines, four install stories',
+    code: `<span class="c">## Getting started</span>
+
+<span class="c"># macOS</span>
+brew install python@3.14 redis jq
+npm install -g @anthropic-ai/claude-code
+
+<span class="c"># CI (ubuntu-latest)</span>
+sudo apt-get install -y python3 redis-server jq   <span class="h"># python 3.12, redis 7.0</span>
+curl -fsSL https://example.invalid/install.sh | sh
+
+<span class="c"># Dockerfile</span>
+FROM python:3.13-slim                             <span class="h"># a third python</span>
+RUN apt-get update &amp;&amp; apt-get install -y redis jq
+
+<span class="c"># The agent</span>
+<span class="c"># ...reads all of the above, picks one, and hopes.</span>`,
+    foot: ['Three Pythons, two Redises, and a curl | sh. Same repo.', '3:00'],
+    notes: `This is the honest README. Point at the version comments: three different Pythons across the four machines. Nobody chose that. It just happened. <b>~4:30 when you leave.</b>` },
+
+  // 4 ------------------------------------------------------------- 4:30
+  { type: 'cards2', t: 4.5,
+    kicker: 'Two problems fall out of that',
+    title: 'Build it the same. Run it the same.',
+    cards: [
+      { h: '1. Same build, every machine', p: 'Laptop, CI runner, local sandbox, agent sandbox. One definition of the toolchain, reproduced exactly, so a green build means the same thing everywhere.' },
+      { h: '2. Same run, wherever it lands next', p: 'Another runner, a container, production, or six months from now. The artifact carries its own closure, so it does not depend on what the host happened to have.' },
+    ],
+    foot: ['The model’s reasoning is the only part that should vary.', '4:30'],
+    notes: `Emphasize the footer line: with agents in the loop, the model's output is the <i>intended</i> source of variance. Everything else should be boring and identical. <b>Leave by 6:00.</b>` },
+
+  // 5 ------------------------------------------------------------- 6:00
+  { type: 'diagram', t: 6,
+    kicker: 'The fix',
+    title: 'Declare it. Don’t script it.',
+    notes: `Walk the flow: you write the manifest. Flox resolves it to a lock with exact versions and store paths for every system. The lock pins a hash-addressed closure. Then every verb (activate, build, containerize, publish) consumes that same closure. The engine underneath is Nix; the point of Flox is that you never have to touch it. <b>Leave by 8:00.</b>` },
+
+  // 6 ------------------------------------------------------------- 8:00
+  { type: 'section', t: 8, kicker: 'Demo 1 of 3', title: 'One file.',
+    notes: `Switch to the laptop terminal framing. Every command on the next three slides was run for real in this repo; the outputs are the captured ones.` },
+
+  // 7
+  { type: 'term', t: 8.25, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+    steps: [
+      { cmd: 'flox init',
+        out: `<span class="hash">⚡︎</span> Created environment 'deterministic-builds-ato' (aarch64-darwin)
+
+Next:
+  $ flox search &lt;package&gt;    &lt;- Search for a package
+  $ flox install &lt;package&gt;   &lt;- Install a package into an environment
+  $ flox activate            &lt;- Enter the environment
+  $ flox edit                &lt;- Add environment variables and shell hooks` },
+      { cmd: 'flox install python3 redis jq claude-code',
+        out: `<span class="ok">✔</span> 'python3', 'redis', 'jq', 'claude-code' installed to environment 'deterministic-builds-ato'
+<span class="info">ℹ</span> 'jq' has additional outputs, use 'flox list -a' to see more
+<span class="warn">!</span> The package 'claude-code' has an unfree license, please verify the licensing terms of use` },
+      { cmd: 'flox list', out: LIST_OUT },
+    ],
+    notes: `Three commands. Call out that <code>claude-code</code> is just another package: the agent's harness is pinned the same way the runtime is. Resolution happens against a catalog with every historical version, so these numbers are exact, not "latest".` },
+
+  // 8
+  { type: 'term', t: 9.5, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+    steps: [
+      { cmd: 'cat .flox/env/manifest.toml', out: MANIFEST, raw: true },
+    ],
+    notes: `This is the whole thing. Walk top to bottom: runtime, database, agent harness, static vars, two services, and a build that runs in a pure sandbox and only ships python and redis in its runtime closure. The <code>systems</code> line is what makes the next demo work.` },
+
+  // 9
+  { type: 'term', t: 10.5, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+    steps: [
+      { cmd: 'flox activate -s',
+        out: `<span class="ok">✔</span> You are now using the environment 'deterministic-builds-ato'
+To stop using this environment, run 'flox deactivate'
+<span class="ok">✔</span> Service 'app' started.
+<span class="ok">✔</span> Service 'redis' started.`, ps: 'flox' },
+      { cmd: 'python3 --version && redis-server --version && claude --version',
+        out: `Python 3.14.7
+Redis server v=8.10.2 sha=00000000:0 malloc=libc bits=64 build=d9f021fa7678041b
+2.1.296 (Claude Code)` },
+      { cmd: 'flox services status',
+        out: `NAME       STATUS       PID
+app        <span class="ok">Running</span>    97508
+redis      <span class="ok">Running</span>    97510` },
+      { cmd: 'curl -s localhost:8080', out: REPORT_JSON },
+    ],
+    notes: `<code>-s</code> starts the services declared in the manifest. The app is talking to the Redis from the same manifest and reports the exact Python it is running on. Nothing was installed on this machine outside the environment. <b>Leave by 12:00.</b>` },
+
+  // 10 ------------------------------------------------------------ 12:00
+  { type: 'section', t: 12, kicker: 'Demo 2 of 3', title: 'Three machines,<br>one hash.',
+    notes: `Framing: same git repo cloned onto an Apple Silicon laptop, an x86_64 CI runner, and an aarch64 Linux agent sandbox. The laptop column is real; the two Linux columns are emulated from the same lockfile (their store paths are the real ones from the lock).` },
+
+  // 11
+  { type: 'term3', t: 12.25,
+    panes: [
+      { host: 'laptop', sys: 'aarch64-darwin' },
+      { host: 'ci-runner', sys: 'x86_64-linux' },
+      { host: 'agent-sandbox', sys: 'aarch64-linux' },
+    ],
+    steps: [
+      { cmd: 'git clone justincastilla/deterministic-builds-ATO && cd $_',
+        out: [`Cloning into 'deterministic-builds-ATO'...
+<span class="dim">done.</span>`, `Cloning into 'deterministic-builds-ATO'...
+<span class="dim">done.</span>`, `Cloning into 'deterministic-builds-ATO'...
+<span class="dim">done.</span>`] },
+      { cmd: 'flox activate -- python3 --version',
+        out: ['Python <span class="ok">3.14.7</span>', 'Python <span class="ok">3.14.7</span>', 'Python <span class="ok">3.14.7</span>'] },
+      { cmd: 'flox list', out: [LIST_OUT, LIST_OUT, LIST_OUT] },
+      { cmd: 'sha256sum .flox/env/manifest.lock | cut -c1-16',
+        out: ['<span class="hash">7c18d091b247ea6f</span>', '<span class="hash">7c18d091b247ea6f</span>', '<span class="hash">7c18d091b247ea6f</span>'] },
+    ],
+    notes: `Same lock, same hash, same versions, three architectures. No "works on my machine": the machine is not an input anymore. The lock holds a per-system store path for each package, all resolved from one nixpkgs revision. <b>Speaker tip:</b> the laptop sha256sum is <code>shasum -a 256</code> on macOS; the alias is in the repo's profile.` },
+
+  // 12
+  { type: 'term', t: 13.5, host: 'agent-sandbox', sys: 'aarch64-linux', cwd: '/workspace',
+    steps: [
+      { cmd: 'flox activate -r justin-flox/deterministic-builds-ato -- python3 app.py --report',
+        out: `{
+  "service": "ato-demo",
+  "version": "0.1.0",
+  "python": "3.14.7",
+  "system": "aarch64-linux",
+  "flox_env": "/root/.cache/flox/run/aarch64-linux.deterministic-builds-ato-dev",
+  "redis": "down"
+}` },
+    ],
+    notes: `No clone at all. The agent sandbox pulls the environment straight from FloxHub by reference and gets the same closure. <b>Emulated:</b> run <code>flox push</code> from the repo before the talk and this command works live. Change the owner if you push under a different FloxHub account. <b>Leave by 15:00.</b>` },
+
+  // 13 ------------------------------------------------------------ 15:00
+  { type: 'section', t: 15, kicker: 'Demo 3 of 3', title: 'The artifact,<br>and the receipt.',
+    notes: `Now the second problem: run it the same wherever it lands next.` },
+
+  // 14
+  { type: 'term', t: 15.25, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+    steps: [
+      { cmd: 'flox build',
+        out: `Building app-0.1.0 in Nix sandbox (<span class="em">pure</span>) mode
+app&gt; Input checksums:
+app&gt; 0a80108b9f2fa10e0ef937243c3b6f4d  /nix/store/yjj9s2nqvmyc4isnikjj1c76bsh6fxd4-src.tar
+app&gt; a5a1f9bdc6a27c54fe15b9d9da7f9301  /nix/store/sxf498kb8c4xsdw9r21xiillfrsbcnis-build.bash
+app&gt; + mkdir -p /nix/store/mlcy97cwi3jljgkbfa49sjry2v5923vx-app-0.1.0/bin
+app&gt; + cp app.py /nix/store/mlcy97cwi3jljgkbfa49sjry2v5923vx-app-0.1.0/bin/app
+app&gt; + chmod +x /nix/store/mlcy97cwi3jljgkbfa49sjry2v5923vx-app-0.1.0/bin/app
+app&gt; interpreter directive changed from "#!/usr/bin/env python3"
+app&gt;   to "/nix/store/sr61jjs5h39akm49m89jfxh923fiv7b5-environment-build-app/bin/python3"
+Completed build of app-0.1.0 in Nix sandbox mode
+
+<span class="hash">⚡︎</span> Built outputs:
+./result-app, ./result-app-buildCache, ./result-app-log` },
+      { cmd: 'readlink result-app',
+        out: `<span class="hash">/nix/store/mlcy97cwi3jljgkbfa49sjry2v5923vx-app-0.1.0</span>` },
+      { cmd: './result-app/bin/app --version', out: `ato-demo 0.1.0 (python 3.14.7)` },
+    ],
+    notes: `Pure sandbox: no network, only the git-tracked sources and the manifest's packages. Note the shebang rewrite: the artifact is wired to the exact Python from the lock, so it runs identically outside the environment. The store path is a hash of every input.` },
+
+  // 15
+  { type: 'term', t: 16.5, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+    steps: [
+      { cmd: 'flox containerize --runtime docker',
+        out: `<span class="ok">✔</span> Container written to Docker as 'deterministic-builds-ato:latest'
+Run it with 'docker run -it deterministic-builds-ato:latest'` },
+      { cmd: 'docker run --rm -p 8080:8080 deterministic-builds-ato:latest python3 app.py --report',
+        out: `{
+  "service": "ato-demo",
+  "version": "0.1.0",
+  "python": "3.14.7",
+  "system": "aarch64-linux",
+  "flox_env": "/nix/store/…-environment",
+  "redis": "down"
+}` },
+      { cmd: `python3 scripts/sbom.py | jq -r '.packages[] | "\\(.name)@\\(.versionInfo)  \\(.licenseConcluded)"'`,
+        out: `claude-code@2.1.296  Unfree
+jq@1.8.2  MIT
+python3@3.14.7  Python-2.0
+redis@8.10.2  AGPL-3.0-only` },
+    ],
+    notes: `No Dockerfile. The image is the same closure, so the Python inside is the same build the laptop just ran. Then the receipt: an SPDX SBOM derived from the lockfile, not from scanning a filesystem after the fact. It lists exactly what went in because the lock is exactly what went in. <b>Containerize and docker run need Docker on the laptop; the SBOM line is real.</b> <b>Leave by 18:00.</b>` },
+
+  // 16 ------------------------------------------------------------ 18:00
+  { type: 'cols', t: 18,
+    kicker: 'Humans and agents',
+    title: 'One definition, shared.',
+    cols: [
+      { h: 'People', items: ['<code>flox init</code> once', '<code>flox activate -s</code> every morning', '<code>flox push</code> to share it'] },
+      { h: 'Agents', items: ['The <code>flox</code> and <code>floxify</code> skills write the same manifest', 'Verify with <code>flox activate -- &lt;cmd&gt;</code>', 'Never <code>apt-get</code> again'] },
+    ],
+    foot: ['flox activate -r org/env gives any person, agent, or machine the same environment.', '18:00'],
+    notes: `The agent is not a special case. It edits the same file, runs the same verbs, and gets the same closure. That is the whole trick: make the environment a declared input to the work, for whoever is doing the work.` },
+
+  // 17
+  { type: 'term', t: 18.75, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+    steps: [
+      { cmd: 'claude -p "add node 22 to this environment and prove it activates"',
+        out: `<span class="dim">› flox search nodejs
+› flox show nodejs</span>
+<span class="dim">› flox install nodejs@22</span>
+<span class="ok">✔</span> 'nodejs' installed to environment 'deterministic-builds-ato'
+<span class="dim">› flox activate -- node --version</span>
+v22.21.1
+
+Added <span class="em">nodejs.pkg-path = "nodejs"</span> and <span class="em">nodejs.version = "22"</span> to
+.flox/env/manifest.toml. The lock now resolves nodejs 22.21.1 on all three systems.`, slow: true },
+    ],
+    notes: `<b>Emulated transcript</b>, but every command in it is real and <code>nodejs@22.21.1</code> is what the catalog resolves today. If you want this live, run it live: the flox skill is installed in this environment's claude-code. <b>Leave by 19:30.</b>` },
+
+  // 18 ------------------------------------------------------------ 19:30
+  { type: 'statement', t: 19.5,
+    title: 'Software is built everywhere now. Make everywhere mean the same thing.',
+    sub: 'Declare it once. Lock it. Reproduce it bit-for-bit on every machine, for every human and every agent.',
+    notes: `Closing line. Then thank-you slide and questions.` },
+
+  // 19
+  { type: 'links', t: 19.75,
+    title: 'Thank you.',
+    links: [
+      ['Flox', 'flox.dev'],
+      ['Agent skills', 'github.com/flox/flox-skills'],
+      ['This demo + deck', 'github.com/justincastilla/deterministic-builds-ATO'],
+      ['Me', '@justincastilla'],
+    ],
+    notes: `Leave this up for questions.` },
+];
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+const stage = document.getElementById('stage');
+const fmt = m => `${String(Math.floor(m)).padStart(2,'0')}:${String(Math.round((m % 1) * 60)).padStart(2,'0')}`;
+
+function termEl(host, sys, cwd) {
+  const el = document.createElement('div'); el.className = 'term';
+  el.innerHTML = `<div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="host">${host}</span><span>· ${cwd || ''}</span><span class="sys">${sys}</span></div><div class="body"></div>`;
+  return el;
+}
+
+function render(s, i) {
+  const el = document.createElement('section');
+  el.className = `slide ${s.type}`;
+  const foot = f => f ? `<div class="foot"><span>${f[0]}</span><span>${f[1]}</span></div>` : '';
+  switch (s.type) {
+    case 'title':
+      el.innerHTML = `<div class="kicker">${s.kicker}</div><h1>${s.title}</h1><div class="sub">${s.sub}</div><div class="who">${s.who.map(w=>`<span>${w}</span>`).join('')}</div>`; break;
+    case 'statement':
+      el.innerHTML = `<h1>${s.title}</h1><div class="sub">${s.sub||''}</div>`; break;
+    case 'section':
+      el.innerHTML = `<div class="kicker">${s.kicker}</div><h1>${s.title}</h1>`; break;
+    case 'cards':
+      el.innerHTML = `<div class="kicker">${s.kicker}</div><h2>${s.title}</h2><div class="cards">${s.cards.map(c=>`<div class="card"><div class="ico">${c.ico}</div><h3>${c.h}</h3><p>${c.p}</p><div class="tag">${c.tag}</div></div>`).join('')}</div><div class="fill"></div>${foot(s.foot)}`; break;
+    case 'cards2':
+      el.innerHTML = `<div class="kicker">${s.kicker}</div><h2>${s.title}</h2><div class="cards two">${s.cards.map(c=>`<div class="card"><h3>${c.h}</h3><p>${c.p}</p></div>`).join('')}</div><div class="fill"></div>${foot(s.foot)}`; break;
+    case 'code':
+      el.innerHTML = `<div class="kicker">${s.kicker}</div><h2>${s.title}</h2><pre class="code">${s.code}</pre><div class="fill"></div>${foot(s.foot)}`; break;
+    case 'cols':
+      el.innerHTML = `<div class="kicker">${s.kicker}</div><h2>${s.title}</h2><div class="cols">${s.cols.map(c=>`<div class="col"><h3>${c.h}</h3><ul>${c.items.map(x=>`<li>${x}</li>`).join('')}</ul></div>`).join('')}</div><div class="fill"></div>${foot(s.foot)}`; break;
+    case 'diagram':
+      el.innerHTML = `<div class="kicker">${s.kicker}</div><h2>${s.title}</h2>
+        <div class="flow">
+          <div class="node hi"><div class="n">manifest.toml</div><div class="d">you write this</div></div><div class="arrow">→</div>
+          <div class="node"><div class="n">manifest.lock</div><div class="d">exact versions, every system</div></div><div class="arrow">→</div>
+          <div class="node"><div class="n">/nix/store/7c18d0…</div><div class="d">hash-pinned closure</div></div>
+        </div>
+        <div class="outs">
+          <div class="node"><div class="n">flox activate</div><div class="d">dev shell, services</div></div>
+          <div class="node"><div class="n">flox build</div><div class="d">hermetic artifact</div></div>
+          <div class="node"><div class="n">flox containerize</div><div class="d">OCI image, no Dockerfile</div></div>
+          <div class="node"><div class="n">flox publish</div><div class="d">share the package</div></div>
+        </div>
+        <div class="triple"><span>Declarative</span><span>Deterministic</span><span>Verifiable</span></div>
+        <div class="fill"></div><div class="foot"><span>The engine underneath is Nix. You never have to touch it.</span><span>6:00</span></div>`; break;
+    case 'links':
+      el.innerHTML = `<h1>${s.title}</h1><ul class="big">${s.links.map(l=>`<li>${l[0]}<small>${l[1]}</small></li>`).join('')}</ul>`; break;
+    case 'term': {
+      const wrap = document.createElement('div'); wrap.className = 'termwrap';
+      wrap.appendChild(termEl(s.host, s.sys, s.cwd)); el.appendChild(wrap);
+      const h = document.createElement('div'); h.className = 'hint'; h.textContent = '→ to run the next command'; el.appendChild(h);
+      break; }
+    case 'term3': {
+      const wrap = document.createElement('div'); wrap.className = 'termwrap three';
+      s.panes.forEach(p => wrap.appendChild(termEl(p.host, p.sys, '~'))); el.appendChild(wrap);
+      const h = document.createElement('div'); h.className = 'hint'; h.textContent = '→ to run the next command'; el.appendChild(h);
+      break; }
+  }
+  el.dataset.index = i;
+  return el;
+}
+slides.forEach((s, i) => stage.appendChild(render(s, i)));
+const slideEls = [...stage.children];
+
+// ---------------------------------------------------------------------------
+// Terminal playback
+// ---------------------------------------------------------------------------
+const state = { i: 0, step: 0, typing: null };
+const TYPE_MS = 22;
+
+function promptHtml(kind) {
+  return kind === 'flox' ? `<span class="ps flox">[flox] $</span> ` : `<span class="ps">$</span> `;
+}
+
+function bodies(i) { return [...slideEls[i].querySelectorAll('.term .body')]; }
+
+function currentPrompt(s, stepIdx) {
+  let ps = 'plain';
+  for (let k = 0; k < stepIdx; k++) if (s.steps[k].ps) ps = s.steps[k].ps;
+  return ps;
+}
+
+function appendCmd(body, ps, text, instant, done) {
+  const line = document.createElement('div'); line.className = 'line cmd';
+  line.innerHTML = promptHtml(ps) + '<span class="typed"></span><span class="cursor"></span>';
+  body.appendChild(line);
+  const typed = line.querySelector('.typed');
+  if (instant) { typed.textContent = text; line.querySelector('.cursor').remove(); done(); return () => {}; }
+  let n = 0;
+  const id = setInterval(() => {
+    n++; typed.textContent = text.slice(0, n);
+    if (n >= text.length) { clearInterval(id); line.querySelector('.cursor').remove(); done(); }
+  }, TYPE_MS);
+  return () => { clearInterval(id); typed.textContent = text; const c = line.querySelector('.cursor'); if (c) c.remove(); done(); };
+}
+
+function appendOut(body, html, slow) {
+  const out = document.createElement('div'); out.className = 'out';
+  out.innerHTML = html;
+  if (slow) out.style.animationDuration = '.6s';
+  body.appendChild(out);
+  body.scrollTop = body.scrollHeight;
+}
+
+function runStep(i, k, instant) {
+  const s = slides[i];
+  const bs = bodies(i);
+  const step = s.steps[k];
+  const ps = currentPrompt(s, k);
+  let pending = bs.length;
+  const finishers = bs.map((b, idx) => appendCmd(b, ps, step.cmd, instant, () => {
+    const html = Array.isArray(step.out) ? step.out[idx] : step.out;
+    setTimeout(() => appendOut(b, html, step.slow), instant ? 0 : 140);
+    if (--pending === 0) state.typing = null;
+  }));
+  if (!instant) state.typing = () => finishers.forEach(f => f());
+}
+
+function resetTerm(i) { bodies(i).forEach(b => b.innerHTML = ''); }
+
+function showAllSteps(i) {
+  const s = slides[i]; if (!s.steps) return;
+  resetTerm(i);
+  s.steps.forEach((_, k) => runStep(i, k, true));
+  state.step = s.steps.length;
+}
+
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+function show(i, opts = {}) {
+  i = Math.max(0, Math.min(slides.length - 1, i));
+  if (state.typing) { state.typing(); state.typing = null; }
+  slideEls.forEach(el => el.classList.remove('active'));
+  slideEls[i].classList.add('active');
+  state.i = i; state.step = 0;
+  if (slides[i].steps) { if (opts.complete) showAllSteps(i); else resetTerm(i); }
+  location.hash = `#${i + 1}`;
+  document.getElementById('hud').firstElementChild.style.width = `${((i + 1) / slides.length) * 100}%`;
+  document.getElementById('counter').textContent = `${i + 1} / ${slides.length}`;
+  document.getElementById('target').textContent = `target ${fmt(slides[i].t)}`;
+  document.getElementById('notes').innerHTML = `<h4>Notes · slide ${i + 1} · target ${fmt(slides[i].t)}</h4>${slides[i].notes || ''}`;
+  const hint = slideEls[i].querySelector('.hint'); if (hint) hint.style.display = '';
+}
+
+function next() {
+  const s = slides[state.i];
+  if (state.typing) { state.typing(); state.typing = null; return; }
+  if (s.steps && state.step < s.steps.length) {
+    runStep(state.i, state.step, false); state.step++;
+    if (state.step === s.steps.length) { const h = slideEls[state.i].querySelector('.hint'); if (h) h.style.display = 'none'; }
+    return;
+  }
+  if (state.i < slides.length - 1) show(state.i + 1);
+}
+function prev() { if (state.i > 0) show(state.i - 1, { complete: true }); }
+
+// Talk clock
+let t0 = null;
+function tick() {
+  const c = document.getElementById('clock');
+  if (!t0) { c.textContent = 'clock: press t'; c.className = ''; return; }
+  const m = (Date.now() - t0) / 60000;
+  c.innerHTML = `<b>${fmt(m)}</b>`;
+  c.className = m > slides[state.i].t + 1 ? 'late' : '';
+}
+setInterval(tick, 1000);
+
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  switch (e.key) {
+    case 'ArrowRight': case ' ': case 'Enter': case 'PageDown': e.preventDefault(); next(); break;
+    case 'ArrowLeft': case 'PageUp': case 'Backspace': e.preventDefault(); prev(); break;
+    case 'Home': show(0); break;
+    case 'End': show(slides.length - 1, { complete: true }); break;
+    case 'n': document.getElementById('notes').classList.toggle('show'); break;
+    case 't': t0 = t0 ? null : Date.now(); tick(); break;
+    case 'f': document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); break;
+    case '?': document.getElementById('help').classList.toggle('show'); break;
+    case 'Escape': document.getElementById('help').classList.remove('show'); break;
+  }
+});
+document.getElementById('help').addEventListener('click', () => document.getElementById('help').classList.remove('show'));
+stage.addEventListener('click', e => { if (e.clientX > window.innerWidth / 2) next(); else prev(); });
+
+// Scale the 1600x900 stage to the window
+function fit() {
+  const k = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+  stage.style.transform = `scale(${k})`;
+}
+window.addEventListener('resize', fit); fit();
+
+const start = parseInt((location.hash || '#1').slice(1), 10) - 1;
+show(isNaN(start) ? 0 : start);
+tick();
+</script>
+</body>
+</html>

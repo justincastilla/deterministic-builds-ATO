@@ -1,0 +1,22 @@
+# Machine 2 of 3: an x86_64-linux CI runner activating the same lock.
+name: same-lock-on-linux
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flox/install-flox-action@v2
+      - name: Same versions as the laptop
+        run: |
+          flox activate -- python3 --version
+          flox list
+          sha256sum .flox/env/manifest.lock
+      - name: Build the artifact hermetically
+        run: |
+          flox build
+          ./result-app/bin/app --version
+      - name: SBOM from the lock
+        run: flox activate -- python3 scripts/sbom.py --system x86_64-linux > sbom.spdx.json
+      - uses: actions/upload-artifact@v4
+        with: { name: sbom, path: sbom.spdx.json }
