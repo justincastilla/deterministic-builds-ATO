@@ -40,7 +40,7 @@ python3 scripts/sbom.py | jq '.packages[] | {name, versionInfo, licenseConcluded
 Same lock, three systems:
 
 ```sh
-shasum -a 256 .flox/env/manifest.lock  # 7c18d091b247ea6f…  identical on darwin and linux
+shasum -a 256 .flox/env/manifest.lock  # 6d746f718ac79d28…  identical on darwin and linux
 jq -r '[.packages[].locked_url] | unique[]' .flox/env/manifest.lock
 ```
 

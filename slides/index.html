@@ -27,6 +27,7 @@
   #stage-wrap { position: fixed; inset: 0; display: grid; place-items: center; }
   #stage { width: 1600px; height: 900px; position: relative; transform-origin: center center; }
   .slide { position: absolute; inset: 0; padding: 72px 96px; display: none; flex-direction: column; }
+  .slide.type-term, .slide.type-term3 { padding: 44px 72px; }
   .slide.active { display: flex; animation: fade .25s ease-out; }
   @keyframes fade { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
 
@@ -38,19 +39,19 @@
   .foot { display: flex; justify-content: space-between; color: var(--muted); font-size: 22px; font-family: var(--mono); }
 
   /* title */
-  .slide.title { justify-content: center; }
-  .slide.title h1 { font-size: 104px; max-width: 1300px; }
-  .slide.title .who { margin-top: 48px; font-size: 30px; color: var(--muted); display: flex; gap: 28px; align-items: baseline; }
-  .slide.title .who b { color: var(--text); font-weight: 600; }
+  .slide.type-title { justify-content: center; }
+  .slide.type-title h1 { font-size: 104px; max-width: 1300px; }
+  .slide.type-title .who { margin-top: 48px; font-size: 30px; color: var(--muted); display: flex; gap: 28px; align-items: baseline; }
+  .slide.type-title .who b { color: var(--text); font-weight: 600; }
 
   /* statement */
-  .slide.statement { justify-content: center; }
-  .slide.statement h1 { font-size: 92px; max-width: 1360px; }
+  .slide.type-statement { justify-content: center; }
+  .slide.type-statement h1 { font-size: 92px; max-width: 1360px; }
 
   /* section */
-  .slide.section { justify-content: center; }
-  .slide.section .kicker { font-size: 28px; }
-  .slide.section h1 { font-size: 120px; }
+  .slide.type-section { justify-content: center; }
+  .slide.type-section .kicker { font-size: 28px; }
+  .slide.type-section h1 { font-size: 120px; }
 
   /* bullets */
   ul.big { list-style: none; padding: 0; margin: 0; font-size: 38px; line-height: 1.35; }
@@ -91,7 +92,7 @@
   .triple span::before { content: "✔ "; }
 
   /* code */
-  pre.code { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 30px 36px; font-family: var(--mono); font-size: 25px; line-height: 1.45; overflow: hidden; color: var(--text); }
+  pre.code { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 24px 32px; font-family: var(--mono); font-size: 22px; line-height: 1.4; overflow: hidden; color: var(--text); }
   .k { color: var(--blue); } .s { color: var(--green); } .c { color: var(--muted); } .h { color: var(--accent); } .sec { color: var(--purple); }
 
   /* terminal */
@@ -105,6 +106,7 @@
   .term .bar .host { color: var(--text); }
   .term .bar .sys { margin-left: auto; color: var(--purple); }
   .term .body { flex: 1; padding: 22px 26px; font-family: var(--mono); font-size: 25px; line-height: 1.42; white-space: pre-wrap; overflow: hidden; color: #d7dee9; }
+  .term.small .body { font-size: 19.5px; line-height: 1.33; }
   .termwrap.three .term .body { font-size: 20px; padding: 18px 20px; }
   .termwrap.three .term .bar { font-size: 17px; }
   .line.cmd { color: var(--text); }
@@ -154,15 +156,12 @@ const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;
 
 const MANIFEST = `<span class="k">schema-version</span> = <span class="s">"1.18.0"</span>
 
-<span class="c"># One file. Runtimes, the database, the agent's harness,</span>
-<span class="c"># the services, and the build all live here.</span>
-
 <span class="sec">[install]</span>
-<span class="k">python3</span>.pkg-path = <span class="s">"python3"</span>        <span class="c"># runtime</span>
+<span class="k">python3</span>.pkg-path = <span class="s">"python3"</span>          <span class="c"># runtime</span>
 <span class="k">python3</span>.version  = <span class="s">"3.14"</span>
-<span class="k">redis</span>.pkg-path   = <span class="s">"redis"</span>          <span class="c"># database</span>
+<span class="k">redis</span>.pkg-path   = <span class="s">"redis"</span>            <span class="c"># database</span>
 <span class="k">jq</span>.pkg-path      = <span class="s">"jq"</span>
-<span class="k">claude-code</span>.pkg-path = <span class="s">"claude-code"</span> <span class="c"># the agent's harness</span>
+<span class="k">claude-code</span>.pkg-path = <span class="s">"claude-code"</span>  <span class="c"># the agent's harness</span>
 
 <span class="sec">[vars]</span>
 <span class="k">APP_PORT</span>   = <span class="s">"8080"</span>
@@ -170,18 +169,13 @@ const MANIFEST = `<span class="k">schema-version</span> = <span class="s">"1.18.
 
 <span class="sec">[services.redis]</span>
 <span class="k">command</span> = <span class="s">"redis-server --port $REDIS_PORT --dir $FLOX_ENV_CACHE/redis --save ''"</span>
-
 <span class="sec">[services.app]</span>
 <span class="k">command</span> = <span class="s">"python3 app.py"</span>
 
 <span class="sec">[build.app]</span>
 <span class="k">version</span> = <span class="s">"0.1.0"</span>
-<span class="k">command</span> = <span class="s">'''
-  mkdir -p $out/bin
-  cp app.py $out/bin/app
-  chmod +x $out/bin/app
-'''</span>
-<span class="k">sandbox</span> = <span class="s">"pure"</span>                       <span class="c"># hermetic</span>
+<span class="k">command</span> = <span class="s">"mkdir -p $out/bin && cp app.py $out/bin/app && chmod +x $out/bin/app"</span>
+<span class="k">sandbox</span> = <span class="s">"pure"</span>                      <span class="c"># hermetic</span>
 <span class="k">runtime-packages</span> = [<span class="s">"python3"</span>, <span class="s">"redis"</span>]
 
 <span class="sec">[options]</span>
@@ -233,9 +227,7 @@ const slides = [
   { type: 'code', t: 3,
     kicker: 'Setup, today',
     title: 'Four machines, four install stories',
-    code: `<span class="c">## Getting started</span>
-
-<span class="c"># macOS</span>
+    code: `<span class="c"># macOS</span>
 brew install python@3.14 redis jq
 npm install -g @anthropic-ai/claude-code
 
@@ -295,8 +287,9 @@ Next:
   // 8
   { type: 'term', t: 9.5, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
     steps: [
-      { cmd: 'cat .flox/env/manifest.toml', out: MANIFEST, raw: true },
+      { cmd: 'cat .flox/env/manifest.toml', out: MANIFEST },
     ],
+    small: true,
     notes: `This is the whole thing. Walk top to bottom: runtime, database, agent harness, static vars, two services, and a build that runs in a pure sandbox and only ships python and redis in its runtime closure. The <code>systems</code> line is what makes the next demo work.` },
 
   // 9
@@ -340,7 +333,7 @@ redis      <span class="ok">Running</span>    97510` },
         out: ['Python <span class="ok">3.14.7</span>', 'Python <span class="ok">3.14.7</span>', 'Python <span class="ok">3.14.7</span>'] },
       { cmd: 'flox list', out: [LIST_OUT, LIST_OUT, LIST_OUT] },
       { cmd: 'sha256sum .flox/env/manifest.lock | cut -c1-16',
-        out: ['<span class="hash">7c18d091b247ea6f</span>', '<span class="hash">7c18d091b247ea6f</span>', '<span class="hash">7c18d091b247ea6f</span>'] },
+        out: ['<span class="hash">6d746f718ac79d28</span>', '<span class="hash">6d746f718ac79d28</span>', '<span class="hash">6d746f718ac79d28</span>'] },
     ],
     notes: `Same lock, same hash, same versions, three architectures. No "works on my machine": the machine is not an input anymore. The lock holds a per-system store path for each package, all resolved from one nixpkgs revision. <b>Speaker tip:</b> the laptop sha256sum is <code>shasum -a 256</code> on macOS; the alias is in the repo's profile.` },
 
@@ -467,7 +460,7 @@ function termEl(host, sys, cwd) {
 
 function render(s, i) {
   const el = document.createElement('section');
-  el.className = `slide ${s.type}`;
+  el.className = `slide type-${s.type}`;
   const foot = f => f ? `<div class="foot"><span>${f[0]}</span><span>${f[1]}</span></div>` : '';
   switch (s.type) {
     case 'title':
@@ -503,7 +496,7 @@ function render(s, i) {
       el.innerHTML = `<h1>${s.title}</h1><ul class="big">${s.links.map(l=>`<li>${l[0]}<small>${l[1]}</small></li>`).join('')}</ul>`; break;
     case 'term': {
       const wrap = document.createElement('div'); wrap.className = 'termwrap';
-      wrap.appendChild(termEl(s.host, s.sys, s.cwd)); el.appendChild(wrap);
+      const te = termEl(s.host, s.sys, s.cwd); if (s.small) te.classList.add('small'); wrap.appendChild(te); el.appendChild(wrap);
       const h = document.createElement('div'); h.className = 'hint'; h.textContent = '→ to run the next command'; el.appendChild(h);
       break; }
     case 'term3': {

@@ -21,9 +21,6 @@
       "APP_PORT": "8080",
       "REDIS_PORT": "6379"
     },
-    "hook": {
-      "on-activate": "  mkdir -p \"$FLOX_ENV_CACHE/redis\"\n"
-    },
     "options": {
       "systems": [
         "aarch64-darwin",
@@ -41,14 +38,13 @@
     },
     "build": {
       "app": {
-        "command": "  mkdir -p $out/bin\n  cp app.py $out/bin/app\n  chmod +x $out/bin/app\n",
+        "command": "mkdir -p $out/bin && cp app.py $out/bin/app && chmod +x $out/bin/app",
         "runtime-packages": [
           "python3",
           "redis"
         ],
         "sandbox": "pure",
-        "version": "0.1.0",
-        "description": "Tiny service that reports exactly what it was built from"
+        "version": "0.1.0"
       }
     }
   },
