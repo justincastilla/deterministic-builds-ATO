@@ -107,7 +107,7 @@
   .term .bar .sys { margin-left: auto; color: var(--purple); }
   .term .body { flex: 1; padding: 22px 26px; font-family: var(--mono); font-size: 25px; line-height: 1.42; white-space: pre-wrap; overflow: hidden; color: #d7dee9; }
   .term.small .body { font-size: 19.5px; line-height: 1.33; }
-  .termwrap.three .term .body { font-size: 20px; padding: 18px 20px; }
+  .termwrap.three .term .body { font-size: 18px; padding: 16px 18px; }
   .termwrap.three .term .bar { font-size: 17px; }
   .line.cmd { color: var(--text); }
   .ps { color: var(--accent); font-weight: 600; }
@@ -332,10 +332,10 @@ redis      <span class="ok">Running</span>    97510` },
       { cmd: 'flox activate -- python3 --version',
         out: ['Python <span class="ok">3.14.7</span>', 'Python <span class="ok">3.14.7</span>', 'Python <span class="ok">3.14.7</span>'] },
       { cmd: 'flox list', out: [LIST_OUT, LIST_OUT, LIST_OUT] },
-      { cmd: 'sha256sum .flox/env/manifest.lock | cut -c1-16',
-        out: ['<span class="hash">6d746f718ac79d28</span>', '<span class="hash">6d746f718ac79d28</span>', '<span class="hash">6d746f718ac79d28</span>'] },
+      { cmd: 'sha256sum .flox/env/manifest.lock',
+        out: ['<span class="hash">6d746f718ac79d288b332715…</span>', '<span class="hash">6d746f718ac79d288b332715…</span>', '<span class="hash">6d746f718ac79d288b332715…</span>'] },
     ],
-    notes: `Same lock, same hash, same versions, three architectures. No "works on my machine": the machine is not an input anymore. The lock holds a per-system store path for each package, all resolved from one nixpkgs revision. <b>Speaker tip:</b> the laptop sha256sum is <code>shasum -a 256</code> on macOS; the alias is in the repo's profile.` },
+    notes: `Same lock, same hash, same versions, three architectures. No "works on my machine": the machine is not an input anymore. The lock holds a per-system store path for each package, all resolved from one nixpkgs revision. <b>Speaker tip:</b> on macOS use <code>shasum -a 256</code>; the full hash is in the README.` },
 
   // 12
   { type: 'term', t: 13.5, host: 'agent-sandbox', sys: 'aarch64-linux', cwd: '/workspace',
@@ -361,12 +361,9 @@ redis      <span class="ok">Running</span>    97510` },
     steps: [
       { cmd: 'flox build',
         out: `Building app-0.1.0 in Nix sandbox (<span class="em">pure</span>) mode
-app&gt; Input checksums:
-app&gt; 0a80108b9f2fa10e0ef937243c3b6f4d  /nix/store/yjj9s2nqvmyc4isnikjj1c76bsh6fxd4-src.tar
-app&gt; a5a1f9bdc6a27c54fe15b9d9da7f9301  /nix/store/sxf498kb8c4xsdw9r21xiillfrsbcnis-build.bash
-app&gt; + mkdir -p /nix/store/mlcy97cwi3jljgkbfa49sjry2v5923vx-app-0.1.0/bin
-app&gt; + cp app.py /nix/store/mlcy97cwi3jljgkbfa49sjry2v5923vx-app-0.1.0/bin/app
-app&gt; + chmod +x /nix/store/mlcy97cwi3jljgkbfa49sjry2v5923vx-app-0.1.0/bin/app
+app&gt; + mkdir -p /nix/store/cy1f0px21a94qw2wm3vlx5x8iyak3fjz-app-0.1.0/bin
+app&gt; + cp app.py /nix/store/cy1f0px21a94qw2wm3vlx5x8iyak3fjz-app-0.1.0/bin/app
+app&gt; + chmod +x /nix/store/cy1f0px21a94qw2wm3vlx5x8iyak3fjz-app-0.1.0/bin/app
 app&gt; interpreter directive changed from "#!/usr/bin/env python3"
 app&gt;   to "/nix/store/sr61jjs5h39akm49m89jfxh923fiv7b5-environment-build-app/bin/python3"
 Completed build of app-0.1.0 in Nix sandbox mode
@@ -374,7 +371,7 @@ Completed build of app-0.1.0 in Nix sandbox mode
 <span class="hash">⚡︎</span> Built outputs:
 ./result-app, ./result-app-buildCache, ./result-app-log` },
       { cmd: 'readlink result-app',
-        out: `<span class="hash">/nix/store/mlcy97cwi3jljgkbfa49sjry2v5923vx-app-0.1.0</span>` },
+        out: `<span class="hash">/nix/store/cy1f0px21a94qw2wm3vlx5x8iyak3fjz-app-0.1.0</span>` },
       { cmd: './result-app/bin/app --version', out: `ato-demo 0.1.0 (python 3.14.7)` },
     ],
     notes: `Pure sandbox: no network, only the git-tracked sources and the manifest's packages. Note the shebang rewrite: the artifact is wired to the exact Python from the lock, so it runs identically outside the environment. The store path is a hash of every input.` },
@@ -533,21 +530,25 @@ function appendCmd(body, ps, text, instant, done) {
   const line = document.createElement('div'); line.className = 'line cmd';
   line.innerHTML = promptHtml(ps) + '<span class="typed"></span><span class="cursor"></span>';
   body.appendChild(line);
+  const slot = document.createElement('div'); body.appendChild(slot);   // output lands here, in order
+  body.scrollTop = body.scrollHeight;
   const typed = line.querySelector('.typed');
-  if (instant) { typed.textContent = text; line.querySelector('.cursor').remove(); done(); return () => {}; }
+  let finished = false;
+  const finish = () => { if (finished) return; finished = true; const c = line.querySelector('.cursor'); if (c) c.remove(); typed.textContent = text; done(slot); };
+  if (instant) { finish(); return () => {}; }
   let n = 0;
   const id = setInterval(() => {
     n++; typed.textContent = text.slice(0, n);
-    if (n >= text.length) { clearInterval(id); line.querySelector('.cursor').remove(); done(); }
+    body.scrollTop = body.scrollHeight;
+    if (n >= text.length) { clearInterval(id); finish(); }
   }, TYPE_MS);
-  return () => { clearInterval(id); typed.textContent = text; const c = line.querySelector('.cursor'); if (c) c.remove(); done(); };
+  return () => { clearInterval(id); finish(); };
 }
 
-function appendOut(body, html, slow) {
-  const out = document.createElement('div'); out.className = 'out';
-  out.innerHTML = html;
-  if (slow) out.style.animationDuration = '.6s';
-  body.appendChild(out);
+function fillOut(body, slot, html, slow) {
+  slot.className = 'out';
+  slot.innerHTML = html;
+  if (slow) slot.style.animationDuration = '.6s';
   body.scrollTop = body.scrollHeight;
 }
 
@@ -557,12 +558,14 @@ function runStep(i, k, instant) {
   const step = s.steps[k];
   const ps = currentPrompt(s, k);
   let pending = bs.length;
-  const finishers = bs.map((b, idx) => appendCmd(b, ps, step.cmd, instant, () => {
+  const timers = [];
+  const finishers = bs.map((b, idx) => appendCmd(b, ps, step.cmd, instant, (slot) => {
     const html = Array.isArray(step.out) ? step.out[idx] : step.out;
-    setTimeout(() => appendOut(b, html, step.slow), instant ? 0 : 140);
+    if (instant) fillOut(b, slot, html, step.slow);
+    else timers.push(setTimeout(() => fillOut(b, slot, html, step.slow), 140));
     if (--pending === 0) state.typing = null;
   }));
-  if (!instant) state.typing = () => finishers.forEach(f => f());
+  if (!instant) state.typing = () => { finishers.forEach(f => f()); timers.forEach(clearTimeout); bs.forEach((b, idx) => { const slot = b.lastElementChild; if (slot && !slot.classList.contains('out')) fillOut(b, slot, Array.isArray(step.out) ? step.out[idx] : step.out, step.slow); }); };
 }
 
 function resetTerm(i) { bodies(i).forEach(b => b.innerHTML = ''); }
