@@ -1,0 +1,6 @@
+.flox/cache/
+.flox/run/
+.flox/log/
+result*
+*.tar
+__pycache__/

@@ -1,0 +1,40 @@
+schema-version = "1.18.0"
+
+# One file. Runtimes, the database, the agent's harness,
+# the services, and the build all live here.
+
+[install]
+python3.pkg-path = "python3"
+python3.version = "3.14"
+redis.pkg-path = "redis"
+jq.pkg-path = "jq"
+claude-code.pkg-path = "claude-code"
+
+[vars]
+APP_PORT = "8080"
+REDIS_PORT = "6379"
+
+[hook]
+on-activate = '''
+  mkdir -p "$FLOX_ENV_CACHE/redis"
+'''
+
+[services.redis]
+command = "redis-server --port $REDIS_PORT --dir $FLOX_ENV_CACHE/redis --save ''"
+
+[services.app]
+command = "python3 app.py"
+
+[build.app]
+description = "Tiny service that reports exactly what it was built from"
+version = "0.1.0"
+command = '''
+  mkdir -p $out/bin
+  cp app.py $out/bin/app
+  chmod +x $out/bin/app
+'''
+sandbox = "pure"
+runtime-packages = ["python3", "redis"]
+
+[options]
+systems = ["aarch64-darwin", "aarch64-linux", "x86_64-linux"]

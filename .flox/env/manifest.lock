@@ -1,0 +1,440 @@
+{
+  "lockfile-version": 1,
+  "manifest": {
+    "schema-version": "1.18.0",
+    "install": {
+      "claude-code": {
+        "pkg-path": "claude-code"
+      },
+      "jq": {
+        "pkg-path": "jq"
+      },
+      "python3": {
+        "pkg-path": "python3",
+        "version": "3.14"
+      },
+      "redis": {
+        "pkg-path": "redis"
+      }
+    },
+    "vars": {
+      "APP_PORT": "8080",
+      "REDIS_PORT": "6379"
+    },
+    "hook": {
+      "on-activate": "  mkdir -p \"$FLOX_ENV_CACHE/redis\"\n"
+    },
+    "options": {
+      "systems": [
+        "aarch64-darwin",
+        "aarch64-linux",
+        "x86_64-linux"
+      ]
+    },
+    "services": {
+      "app": {
+        "command": "python3 app.py"
+      },
+      "redis": {
+        "command": "redis-server --port $REDIS_PORT --dir $FLOX_ENV_CACHE/redis --save ''"
+      }
+    },
+    "build": {
+      "app": {
+        "command": "  mkdir -p $out/bin\n  cp app.py $out/bin/app\n  chmod +x $out/bin/app\n",
+        "runtime-packages": [
+          "python3",
+          "redis"
+        ],
+        "sandbox": "pure",
+        "version": "0.1.0",
+        "description": "Tiny service that reports exactly what it was built from"
+      }
+    }
+  },
+  "packages": [
+    {
+      "attr_path": "claude-code",
+      "broken": false,
+      "derivation": "/nix/store/mar3fvfdf807vlcv4kyq7b5mvlrwfzhy-claude-code-2.1.296.drv",
+      "description": "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster",
+      "install_id": "claude-code",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "claude-code-2.1.296",
+      "pname": "claude-code",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T05:00:29.143491Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": true,
+      "version": "2.1.296",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/4xc3whp9l2nffispb1asyxy44r39jn0p-claude-code-2.1.296"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "claude-code",
+      "broken": false,
+      "derivation": "/nix/store/nafhs5jl7vlhxx1h5hb8c7ib9wylzv99-claude-code-2.1.296.drv",
+      "description": "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster",
+      "install_id": "claude-code",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "claude-code-2.1.296",
+      "pname": "claude-code",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T05:33:17.109049Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": true,
+      "version": "2.1.296",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/dm2yrjil3x9g6vjkplw6a0dyjrw3xm3i-claude-code-2.1.296"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "claude-code",
+      "broken": false,
+      "derivation": "/nix/store/yb63aw9axqkpn2dwqx0wk0ww6l31vsjv-claude-code-2.1.296.drv",
+      "description": "Agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster",
+      "install_id": "claude-code",
+      "license": "Unfree",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "claude-code-2.1.296",
+      "pname": "claude-code",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T06:09:55.490625Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": true,
+      "version": "2.1.296",
+      "outputs_to_install": [
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/lhfhq712gj2f3z4r2n8wk3z959q0ysdk-claude-code-2.1.296"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "jq",
+      "broken": false,
+      "derivation": "/nix/store/i49zakhi606cfzmng9j8srjgs8rnkmhb-jq-1.8.2.drv",
+      "description": "Lightweight and flexible command-line JSON processor",
+      "install_id": "jq",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "jq-1.8.2",
+      "pname": "jq",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T05:00:46.052050Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.8.2",
+      "outputs_to_install": [
+        "bin",
+        "bin",
+        "man",
+        "man"
+      ],
+      "outputs": {
+        "bin": "/nix/store/wm7v59a2lhj1w2k8jz53spcs1iizm9lv-jq-1.8.2-bin",
+        "dev": "/nix/store/04msnqzxb42m9j2mmzdwks0dzwwsii31-jq-1.8.2-dev",
+        "doc": "/nix/store/1bd9hqy7vqpzvwy41py8sz4wjaz8vsg3-jq-1.8.2-doc",
+        "man": "/nix/store/dnn7q9pwfzrzqvdvw2skrf2rv8sg2jp9-jq-1.8.2-man",
+        "out": "/nix/store/jwg9h7xv46zgl4lmrgsdpgvy01rda7lv-jq-1.8.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "jq",
+      "broken": false,
+      "derivation": "/nix/store/5qa411k6lfcqxjg61b714dazdhhij85c-jq-1.8.2.drv",
+      "description": "Lightweight and flexible command-line JSON processor",
+      "install_id": "jq",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "jq-1.8.2",
+      "pname": "jq",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T05:33:39.431412Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.8.2",
+      "outputs_to_install": [
+        "bin",
+        "bin",
+        "bin",
+        "man"
+      ],
+      "outputs": {
+        "bin": "/nix/store/kr5py0dcqc9f3l9148qd1axh0z77lld3-jq-1.8.2-bin",
+        "dev": "/nix/store/i7jmmf6qhg4qvnqyvwizz0f7h43m5jqg-jq-1.8.2-dev",
+        "doc": "/nix/store/c1c6ciln60mr4q8pa467dp4b8cgrrbsf-jq-1.8.2-doc",
+        "man": "/nix/store/3dk5p8ydxv92px9q2y5vgq3gzl26vdxy-jq-1.8.2-man",
+        "out": "/nix/store/w6gz3cg3bqkbmkvry3hkf0fnbfa9kgd6-jq-1.8.2"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "jq",
+      "broken": false,
+      "derivation": "/nix/store/1dzrf0cwcnlpsscf1pnjvd4fhm4b64gd-jq-1.8.2.drv",
+      "description": "Lightweight and flexible command-line JSON processor",
+      "install_id": "jq",
+      "license": "MIT",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "jq-1.8.2",
+      "pname": "jq",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T06:10:19.309302Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "1.8.2",
+      "outputs_to_install": [
+        "bin",
+        "bin",
+        "bin",
+        "man",
+        "man"
+      ],
+      "outputs": {
+        "bin": "/nix/store/m3y7hqmy20nd1ps6qy8410a326255bf0-jq-1.8.2-bin",
+        "dev": "/nix/store/96c4ibp3dbbw2sgnam50ikjdcyg8l3xr-jq-1.8.2-dev",
+        "doc": "/nix/store/46i2m09761wx4r0yi7s434gsvc7kabl3-jq-1.8.2-doc",
+        "man": "/nix/store/gpc36qrvyhyqb6axmj1c0ivx74ni7d8d-jq-1.8.2-man",
+        "out": "/nix/store/042fq58lpkzcshky0g3ccyaw49q067q7-jq-1.8.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python3",
+      "broken": false,
+      "derivation": "/nix/store/p745p2wn875yp2k6nf6rvpbmc6w6qcw9-python3-3.14.7.drv",
+      "description": "High-level dynamically-typed programming language",
+      "install_id": "python3",
+      "license": "Python-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "python3-3.14.7",
+      "pname": "python3",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T05:01:09.995657Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.14.7",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python3",
+      "broken": false,
+      "derivation": "/nix/store/nc0s5zggmm8vpkl48hg82hj96hvqcpcv-python3-3.14.7.drv",
+      "description": "High-level dynamically-typed programming language",
+      "install_id": "python3",
+      "license": "Python-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "python3-3.14.7",
+      "pname": "python3",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T05:34:16.586585Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.14.7",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "debug": "/nix/store/srgw0rb4aiyycf9xw3dv3y89q627lkzy-python3-3.14.7-debug",
+        "out": "/nix/store/81ag9nxz1flw3xjkv1vvqg8y2ipx2ins-python3-3.14.7"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "python3",
+      "broken": false,
+      "derivation": "/nix/store/qpckizfinpgk8mvl0awxbfw4xykrpshf-python3-3.14.7.drv",
+      "description": "High-level dynamically-typed programming language",
+      "install_id": "python3",
+      "license": "Python-2.0",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "python3-3.14.7",
+      "pname": "python3",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T06:10:58.433955Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "3.14.7",
+      "outputs_to_install": [
+        "out",
+        "out",
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "debug": "/nix/store/7wws7qhgbm7g979l50h4z7dwxbgbdbc9-python3-3.14.7-debug",
+        "out": "/nix/store/lb41b0anx1f98y9y5s9mdv97gjgsq740-python3-3.14.7"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "redis",
+      "broken": false,
+      "derivation": "/nix/store/qg6kh5h9l8qsz37zzmjww5s2wp5psd50-redis-8.10.2.drv",
+      "description": "Open source, advanced key-value store",
+      "install_id": "redis",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "redis-8.10.2",
+      "pname": "redis",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T05:02:02.667488Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "8.10.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/ijrgah3cj6cv6amqa70mwq7hxq7dpzfv-redis-8.10.2"
+      },
+      "system": "aarch64-darwin",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "redis",
+      "broken": false,
+      "derivation": "/nix/store/1z9jh1h8hv48g4lmvim1nmksx2vd310r-redis-8.10.2.drv",
+      "description": "Open source, advanced key-value store",
+      "install_id": "redis",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "redis-8.10.2",
+      "pname": "redis",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T05:35:21.499487Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "8.10.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/k09msmwb5g97dkrgl3f9jdf85lrhbrzd-redis-8.10.2"
+      },
+      "system": "aarch64-linux",
+      "group": "toplevel",
+      "priority": 5
+    },
+    {
+      "attr_path": "redis",
+      "broken": false,
+      "derivation": "/nix/store/dspzymb9jnycq77vf6gkdxnwwjnm2bb2-redis-8.10.2.drv",
+      "description": "Open source, advanced key-value store",
+      "install_id": "redis",
+      "license": "AGPL-3.0-only",
+      "locked_url": "https://github.com/flox/nixpkgs?rev=7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "name": "redis-8.10.2",
+      "pname": "redis",
+      "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+      "rev_count": 1090327,
+      "rev_date": "2026-10-11T15:54:36Z",
+      "scrape_date": "2026-10-13T06:12:05.731040Z",
+      "stabilities": [
+        "unstable"
+      ],
+      "unfree": false,
+      "version": "8.10.2",
+      "outputs_to_install": [
+        "out",
+        "out"
+      ],
+      "outputs": {
+        "out": "/nix/store/19hzzx7c1ryvbpxs5wf0y6bkvxvj9057-redis-8.10.2"
+      },
+      "system": "x86_64-linux",
+      "group": "toplevel",
+      "priority": 5
+    }
+  ]
+}
