@@ -33,6 +33,7 @@ flox build                             # hermetic (sandbox = "pure") build
 ./result-app/bin/app --version
 
 flox containerize --runtime docker     # OCI image, no Dockerfile
+docker run --rm -v "$PWD:/w" -w /w deterministic-builds-ato:latest python3 app.py --report
 python3 scripts/sbom.py | jq '.packages[] | {name, versionInfo, licenseConcluded}'
 ```
 
