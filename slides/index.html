@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>One Environment, N Machines</title>
-<meta name="description" content="Deterministic builds for humans and agents. All Things Open 2026. 20 minute talk deck with emulated terminal demos.">
+<meta name="description" content="Deterministic builds for humans and agents. All Things Open 2026. 25 minute talk deck with emulated terminal demos.">
 <style>
   :root {
     --bg: #0b0e14;
@@ -75,7 +75,8 @@
   /* columns */
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
   .col h3 { font-size: 34px; margin: 0 0 18px; color: var(--accent); }
-  .col ul { margin: 0; padding: 0; list-style: none; font-size: 30px; line-height: 1.5; }
+  .col ul { margin: 0; padding: 0; list-style: none; font-size: 30px; line-height: 1.4; }
+  .col li + li { margin-top: 16px; }
   .col li code { font-family: var(--mono); background: var(--panel); border: 1px solid var(--line); padding: 2px 10px; border-radius: 8px; font-size: 26px; color: var(--blue); }
 
   /* diagram */
@@ -119,6 +120,45 @@
   @keyframes reveal { to { opacity: 1; } }
   .term .hint { position: absolute; right: 120px; bottom: 56px; font-family: var(--mono); color: var(--muted); font-size: 18px; }
 
+  /* store path anatomy */
+  .slide.type-path h2 { max-width: 1380px; }
+  .storepath { font-family: var(--mono); font-size: 38px; margin: 22px 0 14px; letter-spacing: -0.01em; white-space: nowrap; }
+  .storepath .pfx { color: var(--dim); }
+  .storepath .nm { color: var(--text); }
+  .legend { display: flex; gap: 48px; color: var(--muted); font-size: 24px; margin-bottom: 30px; }
+  .legend b { font-family: var(--mono); font-weight: 600; margin-right: 10px; }
+  .slide.type-path ul.big { font-size: 32px; }
+  .slide.type-path ul.big li { padding: 16px 0 16px 54px; }
+  .slide.type-path ul.big li code { font-family: var(--mono); color: var(--blue); font-size: 28px; }
+
+  /* flox on nix */
+  .stackwrap { display: grid; grid-template-columns: 1.15fr 1fr; gap: 56px; align-items: start; }
+  .layers { display: flex; flex-direction: column; gap: 10px; }
+  .layer { background: var(--panel); border: 1px solid var(--line); border-left: 8px solid var(--line); border-radius: 14px; padding: 14px 24px; }
+  .layer .n { font-family: var(--mono); font-size: 30px; }
+  .layer .n small { color: var(--muted); font-size: 22px; margin-left: 14px; }
+  .layer .d { color: var(--muted); font-size: 21px; line-height: 1.3; margin-top: 4px; }
+  .layer.you { border-left-color: var(--accent); }
+  .layer.flox { border-left-color: var(--purple); }
+  .layer.nix { border-left-color: var(--blue); }
+  .layer.pkgs { border-left-color: var(--green); }
+  .side h3 { font-size: 28px; margin: 0 0 12px; color: var(--accent); }
+  .side h3 + ul + h3 { margin-top: 30px; }
+  .side ul { margin: 0; padding: 0; list-style: none; font-size: 25px; line-height: 1.45; color: var(--text); }
+  .side li { padding-left: 30px; position: relative; }
+  .side li::before { content: "›"; position: absolute; left: 4px; color: var(--accent); font-family: var(--mono); }
+
+  /* open source table */
+  .oss { display: grid; grid-template-columns: 240px 170px 1fr 400px; font-size: 27px; }
+  .oss > div { padding: 22px 28px 22px 0; border-top: 1px solid var(--line); display: flex; align-items: center; }
+  .oss > div:nth-child(-n+4) { border-top: 0; }
+  .oss .name { font-weight: 600; font-size: 32px; }
+  .oss .lic { font-family: var(--mono); color: var(--green); font-size: 22px; }
+  .oss .what { color: var(--muted); line-height: 1.3; }
+  .oss .repo { font-family: var(--mono); color: var(--blue); font-size: 22px; justify-content: flex-end; padding-right: 0; }
+  .slide.type-open .foot { font-family: var(--sans); font-size: 24px; line-height: 1.35; }
+  .slide.type-open .foot span:first-child { max-width: 1250px; }
+
   /* hud */
   #hud { position: fixed; left: 0; right: 0; bottom: 0; height: 6px; background: rgba(255,255,255,.06); }
   #hud i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s; }
@@ -148,9 +188,11 @@
 <script>
 // ---------------------------------------------------------------------------
 // Slide content. Every terminal output below was captured from a real run of
-// this repository on 2026-10-16 with flox 1.18.0 (see README). The only
-// emulated parts are the two remote machines and `flox push`, which need a
-// FloxHub account and are marked in the speaker notes.
+// this repository on 2026-10-16 with flox 1.18.0 (see README). The plain
+// nix commands in the "Under the hood" section were captured on 2026-10-17
+// with nix 2.31.5 against the same manifest.lock. The only emulated parts are
+// the two remote machines and `flox push`, which need a FloxHub account and
+// are marked in the speaker notes.
 // ---------------------------------------------------------------------------
 const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
@@ -259,14 +301,93 @@ RUN apt-get update &amp;&amp; apt-get install -y redis jq
   { type: 'diagram', t: 6,
     kicker: 'The fix',
     title: 'Declare it. Don’t script it.',
-    notes: `Walk the flow: you write the manifest. Flox resolves it to a lock with exact versions and store paths for every system. The lock pins a hash-addressed closure. Then every verb (activate, build, containerize, publish) consumes that same closure. The engine underneath is Nix; the point of Flox is that you never have to touch it. <b>Leave by 8:00.</b>` },
+    notes: `Walk the flow: you write the manifest. Flox resolves it to a lock with exact versions and store paths for every system. The lock pins a hash-addressed closure. Then every verb (activate, build, containerize, publish) consumes that same closure. The engine underneath is Nix. Before the demos, spend five minutes on how that engine works, so the hashes in the demos mean something. <b>Leave by 7:30.</b>` },
 
-  // 6 ------------------------------------------------------------- 8:00
-  { type: 'section', t: 8, kicker: 'Demo 1 of 3', title: 'One file.',
-    notes: `Switch to the laptop terminal framing. Every command on the next three slides was run for real in this repo; the outputs are the captured ones.` },
+  // 6 ------------------------------------------------------------- 7:30
+  { type: 'section', t: 7.5, kicker: 'Under the hood', title: 'What Nix<br>actually does.',
+    notes: `Flox is a layer on Nix, and the next five minutes are about Nix itself: the store, derivations, closures, then where Flox sits on top and what is and is not open. If you already run Nix, nothing in the first three slides is new. <b>Leave by 7:45.</b>` },
 
   // 7
-  { type: 'term', t: 8.25, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+  { type: 'path', t: 7.75,
+    kicker: 'Nix, part 1 · the store',
+    title: 'Every package lives at a path that is a hash of its inputs.',
+    notes: `This is the real path of the Python in this repo. The 32 character hash covers the source tarball, every dependency (by their own hashes), the build script, the configure flags, and the target system. The name after the dash is for humans; Nix never looks anything up by name. Three consequences, read them off the slide. <b>Leave by 8:30.</b>` },
+
+  // 8
+  { type: 'term', t: 8.5, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO', small: true,
+    steps: [
+      { cmd: `flox activate -- sh -c 'realpath "$(which python3)"'`,
+        out: `/nix/store/<span class="hash">0kcws5blwbdyxqxjd1w8hjipz61xny3k</span>-python3-3.14.7/bin/python3.14` },
+      { cmd: 'nix-store -q --references /nix/store/0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7 | head -6',
+        out: `/nix/store/0fz1gcmyam04pahr91fzjph2c5mi6rv0-bzip2-1.0.8
+/nix/store/phb97pafnka8z1qpj12is214rshpql65-zlib-1.3.2
+/nix/store/0k4r9hnfbnyngn5f3j31siddfs0iglwl-sqlite-3.53.3
+/nix/store/2xyjpks2z1i91klny38h789j483fpz4x-libffi-40
+/nix/store/8kn5h4pkns2wf662nvifg08vvz41c0dl-zstd-1.5.7
+/nix/store/9496m45iskps77ngzq2i16a7snig4dx9-xz-5.8.4` },
+      { cmd: 'nix-store -q --requisites /nix/store/0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7 | wc -l',
+        out: `      <span class="em">51</span>` },
+      { cmd: 'nix-store -q --deriver /nix/store/0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7',
+        out: `/nix/store/p745p2wn875yp2k6nf6rvpbmc6w6qcw9-python3-3.14.7<span class="em">.drv</span>` },
+      { cmd: `nix derivation show /nix/store/p745p2wn875yp2k6nf6rvpbmc6w6qcw9-python3-3.14.7.drv | jq '.[] | {system, builder, inputDrvs: (.inputDrvs|length), inputSrcs: (.inputSrcs|length), out: .outputs.out.path}'`,
+        out: `{
+  "system": "aarch64-darwin",
+  "builder": "/nix/store/f0b9dbw2gl596cm03pvdsss72381qhlp-bash-5.3p15/bin/bash",
+  "inputDrvs": <span class="em">21</span>,
+  "inputSrcs": <span class="em">6</span>,
+  "out": "/nix/store/<span class="hash">0kcws5blwbdyxqxjd1w8hjipz61xny3k</span>-python3-3.14.7"
+}` },
+    ],
+    notes: `Three ideas, one per pair of commands. <b>References:</b> what this Python points at, and every one is an exact store path, not "libssl, whichever". <b>Closure:</b> the package plus everything it references, transitively: 51 paths. That is the thing the artifact "carries with it" on the two-problems slide. <b>Derivation:</b> the recipe. A system, a builder, 21 input derivations and 6 source files, and the output path is computed from all of it before anything is built. Same recipe, same path, on any machine. Plain <code>nix</code> here, nothing Flox specific; <code>nix derivation show</code> needs the nix-command experimental feature enabled. <b>Leave by 9:45.</b>` },
+
+  // 9
+  { type: 'cols', t: 9.75,
+    kicker: 'Nix, part 2 · the trade',
+    title: 'What Nix gives you. What it asks of you.',
+    cols: [
+      { h: 'Gives', items: ['A store where every path is a hash of its inputs', 'nixpkgs: 100,000+ packages, one repo, one commit to pin', 'Binary caches: build once, fetch the same bytes everywhere', 'Sandboxed builds: no network, no <code>$HOME</code>, no <code>/usr</code>'] },
+      { h: 'Asks', items: ['Learn the Nix language: lazy, functional, its own thing', 'Pick a pinning story: channels, flakes, or pinned tarballs', 'Write a derivation for anything not already in nixpkgs', 'Think per system: the hash includes the platform'] },
+    ],
+    foot: ['Flox is one answer to the right column. devenv, devbox, and plain flakes are others.', '9:45'],
+    notes: `Be fair here. The left column is why Nix has lasted twenty years. The right column is why most teams have not adopted it. Name the alternatives out loud; the audience will respect it, and the demos make the case better than a comparison slide would. <b>Leave by 10:30.</b>` },
+
+  // 10
+  { type: 'stack', t: 10.5,
+    kicker: 'Nix, part 3 · where Flox sits',
+    title: 'Flox on top of Nix.',
+    notes: `Top to bottom. You write TOML. The Flox CLI resolves each name and version constraint to a specific nixpkgs commit, writes the lock with a store path per system, and then hands everything to Nix: building the environment, running the sandboxed build, emitting the container. Nix does what it always does. nixpkgs is where the recipes live. The right column is the honest division of labor: what Flox adds, and what it deliberately leaves alone. <b>Leave by 11:30.</b>` },
+
+  // 11
+  { type: 'term', t: 11.5, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+    steps: [
+      { cmd: `jq -r '.packages[] | select(.install_id=="python3" and .system=="aarch64-darwin") | .locked_url, .attr_path, .outputs.out' .flox/env/manifest.lock`,
+        out: `https://github.com/flox/nixpkgs?rev=<span class="em">7fd4004d0511991fff3a0524856a9be09e28c5f0</span>
+python3
+/nix/store/<span class="hash">0kcws5blwbdyxqxjd1w8hjipz61xny3k</span>-python3-3.14.7` },
+      { cmd: `nix build 'github:NixOS/nixpkgs/7fd4004d0511991fff3a0524856a9be09e28c5f0#python3' --no-link --print-out-paths`,
+        out: `/nix/store/<span class="hash">0kcws5blwbdyxqxjd1w8hjipz61xny3k</span>-python3-3.14.7` },
+    ],
+    notes: `The lock is a pointer into nixpkgs: a commit, an attribute, and the path that commit produces for this system. So ask plain Nix, with no Flox involved, to build that attribute at that commit. Same path, character for character. The lock names <code>flox/nixpkgs</code>, a fork that tracks upstream; the commit is an upstream NixOS/nixpkgs commit from 2026-10-11, so the command uses upstream directly to make the point. Needs the flakes experimental feature; the first run downloads and evaluates nixpkgs, later runs are cached. <b>Leave by 12:00.</b>` },
+
+  // 12
+  { type: 'open', t: 12,
+    kicker: 'Nix, part 4',
+    title: 'All of it is open source.',
+    rows: [
+      ['Nix', 'LGPL-2.1', 'The store, the builder, the sandbox, the language.', 'github.com/NixOS/nix'],
+      ['nixpkgs', 'MIT', '100,000+ package recipes. The commit your lock points at.', 'github.com/NixOS/nixpkgs'],
+      ['flox', 'GPL-2.0', 'The CLI: manifest, lock, activate, build, containerize.', 'github.com/flox/flox'],
+      ['flox-skills', 'Apache-2.0', 'The agent skills used in the last demo.', 'github.com/flox/flox-skills'],
+    ],
+    foot: ['Hosted by Flox: the catalog that resolves names to versions, and FloxHub behind flox push. Your environment is two text files in your repo, and once locked, activate and build need only Nix and a binary cache.', '12:00'],
+    notes: `Read the table, then the footer, and do not skip the footer. The parts that are services are services: name resolution goes through Flox's catalog, and <code>flox push</code> goes to FloxHub. Everything that ends up on disk is reproducible with the tools in the table, and the previous slide just proved it. <b>Leave by 12:30.</b>` },
+
+  // 13 ------------------------------------------------------------ 12:30
+  { type: 'section', t: 12.5, kicker: 'Demo 1 of 3', title: 'One file.',
+    notes: `Switch to the laptop terminal framing. Every command on the next three slides was run for real in this repo; the outputs are the captured ones.` },
+
+  // 14
+  { type: 'term', t: 12.75, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
     steps: [
       { cmd: 'flox init',
         out: `<span class="hash">⚡︎</span> Created environment 'deterministic-builds-ato' (aarch64-darwin)
@@ -282,18 +403,18 @@ Next:
 <span class="warn">!</span> The package 'claude-code' has an unfree license, please verify the licensing terms of use` },
       { cmd: 'flox list', out: LIST_OUT },
     ],
-    notes: `Three commands. Call out that <code>claude-code</code> is just another package: the agent's harness is pinned the same way the runtime is. Resolution happens against a catalog with every historical version, so these numbers are exact, not "latest".` },
+    notes: `Three commands. Call out that <code>claude-code</code> is just another package: the agent's harness is pinned the same way the runtime is. Resolution goes through Flox's catalog, which indexes every nixpkgs revision, so these numbers are exact, not "latest". Each one is a commit and a store path, as the Nix section showed.` },
 
-  // 8
-  { type: 'term', t: 9.5, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+  // 15
+  { type: 'term', t: 14, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
     steps: [
       { cmd: 'cat .flox/env/manifest.toml', out: MANIFEST },
     ],
     small: true,
     notes: `This is the whole thing. Walk top to bottom: runtime, database, agent harness, static vars, two services, and a build that runs in a pure sandbox and only ships python and redis in its runtime closure. The <code>systems</code> line is what makes the next demo work.` },
 
-  // 9
-  { type: 'term', t: 10.5, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+  // 16
+  { type: 'term', t: 15, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
     steps: [
       { cmd: 'flox activate -s',
         out: `<span class="ok">✔</span> You are now using the environment 'deterministic-builds-ato'
@@ -310,14 +431,14 @@ app        <span class="ok">Running</span>    97508
 redis      <span class="ok">Running</span>    97510` },
       { cmd: 'curl -s localhost:8080', out: REPORT_JSON },
     ],
-    notes: `<code>-s</code> starts the services declared in the manifest. The app is talking to the Redis from the same manifest and reports the exact Python it is running on. Nothing was installed on this machine outside the environment. <b>Leave by 12:00.</b>` },
+    notes: `<code>-s</code> starts the services declared in the manifest. The app is talking to the Redis from the same manifest and reports the exact Python it is running on. Nothing was installed on this machine outside the environment. <b>Leave by 16:30.</b>` },
 
-  // 10 ------------------------------------------------------------ 12:00
-  { type: 'section', t: 12, kicker: 'Demo 2 of 3', title: 'Three machines,<br>one hash.',
+  // 17 ------------------------------------------------------------ 16:30
+  { type: 'section', t: 16.5, kicker: 'Demo 2 of 3', title: 'Three machines,<br>one hash.',
     notes: `Framing: same git repo cloned onto an Apple Silicon laptop, an x86_64 CI runner, and an aarch64 Linux agent sandbox. The laptop column is real; the two Linux columns are emulated from the same lockfile (their store paths are the real ones from the lock).` },
 
-  // 11
-  { type: 'term3', t: 12.25,
+  // 18
+  { type: 'term3', t: 16.75,
     panes: [
       { host: 'laptop', sys: 'aarch64-darwin' },
       { host: 'ci-runner', sys: 'x86_64-linux' },
@@ -337,8 +458,8 @@ redis      <span class="ok">Running</span>    97510` },
     ],
     notes: `Same lock, same hash, same versions, three architectures. No "works on my machine": the machine is not an input anymore. The lock holds a per-system store path for each package, all resolved from one nixpkgs revision. <b>Speaker tip:</b> on macOS use <code>shasum -a 256</code>; the full hash is in the README.` },
 
-  // 12
-  { type: 'term', t: 13.5, host: 'agent-sandbox', sys: 'aarch64-linux', cwd: '/workspace',
+  // 19
+  { type: 'term', t: 18, host: 'agent-sandbox', sys: 'aarch64-linux', cwd: '/workspace',
     steps: [
       { cmd: 'flox activate -r justin-flox/deterministic-builds-ato -- python3 app.py --report',
         out: `{
@@ -350,14 +471,14 @@ redis      <span class="ok">Running</span>    97510` },
   "redis": "down"
 }` },
     ],
-    notes: `No clone at all. The agent sandbox pulls the environment straight from FloxHub by reference and gets the same closure. <b>Emulated:</b> run <code>flox push</code> from the repo before the talk and this command works live. Change the owner if you push under a different FloxHub account. <b>Leave by 15:00.</b>` },
+    notes: `No clone at all. The agent sandbox pulls the environment straight from FloxHub by reference and gets the same closure. <b>Emulated:</b> run <code>flox push</code> from the repo before the talk and this command works live. Change the owner if you push under a different FloxHub account. <b>Leave by 19:30.</b>` },
 
-  // 13 ------------------------------------------------------------ 15:00
-  { type: 'section', t: 15, kicker: 'Demo 3 of 3', title: 'The artifact,<br>and the receipt.',
+  // 20 ------------------------------------------------------------ 19:30
+  { type: 'section', t: 19.5, kicker: 'Demo 3 of 3', title: 'The artifact,<br>and the receipt.',
     notes: `Now the second problem: run it the same wherever it lands next.` },
 
-  // 14
-  { type: 'term', t: 15.25, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+  // 21
+  { type: 'term', t: 19.75, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
     steps: [
       { cmd: 'flox build',
         out: `Building app-0.1.0 in Nix sandbox (<span class="em">pure</span>) mode
@@ -376,8 +497,8 @@ Completed build of app-0.1.0 in Nix sandbox mode
     ],
     notes: `Pure sandbox: no network, only the git-tracked sources and the manifest's packages. Note the shebang rewrite: the artifact is wired to the exact Python from the lock, so it runs identically outside the environment. The store path is a hash of every input.` },
 
-  // 15
-  { type: 'term', t: 16.5, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+  // 22
+  { type: 'term', t: 21, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
     steps: [
       { cmd: 'flox containerize --runtime docker',
         out: `<span class="hash">⚡︎</span> 'deterministic-builds-ato:latest' written to Docker runtime` },
@@ -396,21 +517,21 @@ jq@1.8.2  MIT
 python3@3.14.7  Python-2.0
 redis@8.10.2  AGPL-3.0-only` },
     ],
-    notes: `No Dockerfile. The image is the same closure, so the Python inside is the same build the laptop just ran. Then the receipt: an SPDX SBOM derived from the lockfile, not from scanning a filesystem after the fact. It lists exactly what went in because the lock is exactly what went in. All three commands are real; the image is the environment, so mount the repo to run app.py from it. Note the system flipped to aarch64-linux: same Python version, same lock, different machine. <b>Leave by 18:00.</b>` },
+    notes: `No Dockerfile. The image is the same closure, so the Python inside is the same build the laptop just ran. Then the receipt: an SPDX SBOM derived from the lockfile, not from scanning a filesystem after the fact. It lists exactly what went in because the lock is exactly what went in. All three commands are real; the image is the environment, so mount the repo to run app.py from it. Note the system flipped to aarch64-linux: same Python version, same lock, different machine. <b>Leave by 22:30.</b>` },
 
-  // 16 ------------------------------------------------------------ 18:00
-  { type: 'cols', t: 18,
+  // 23 ------------------------------------------------------------ 22:30
+  { type: 'cols', t: 22.5,
     kicker: 'Humans and agents',
     title: 'One definition, shared.',
     cols: [
       { h: 'People', items: ['<code>flox init</code> once', '<code>flox activate -s</code> every morning', '<code>flox push</code> to share it'] },
-      { h: 'Agents', items: ['The <code>flox</code> and <code>floxify</code> skills write the same manifest', 'Verify with <code>flox activate -- &lt;cmd&gt;</code>', 'Never <code>apt-get</code> again'] },
+      { h: 'Agents', items: ['The <code>flox</code> and <code>floxify</code> skills write the same manifest', 'Verify with <code>flox activate -- &lt;cmd&gt;</code>', 'No ad hoc installs: the manifest is the only input'] },
     ],
-    foot: ['flox activate -r org/env gives any person, agent, or machine the same environment.', '18:00'],
+    foot: ['flox activate -r org/env gives any person, agent, or machine the same environment.', '22:30'],
     notes: `The agent is not a special case. It edits the same file, runs the same verbs, and gets the same closure. That is the whole trick: make the environment a declared input to the work, for whoever is doing the work.` },
 
-  // 17
-  { type: 'term', t: 18.75, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
+  // 24
+  { type: 'term', t: 23.25, host: 'laptop', sys: 'aarch64-darwin', cwd: '~/deterministic-builds-ATO',
     steps: [
       { cmd: 'claude -p "add node 22 to this environment and prove it activates"',
         out: `<span class="dim">› flox search nodejs
@@ -423,20 +544,21 @@ v22.21.1
 Added <span class="em">nodejs.pkg-path = "nodejs"</span> and <span class="em">nodejs.version = "22"</span> to
 .flox/env/manifest.toml. The lock now resolves nodejs 22.21.1 on all three systems.`, slow: true },
     ],
-    notes: `<b>Emulated transcript</b>, but every command in it is real and <code>nodejs@22.21.1</code> is what the catalog resolves today. If you want this live, run it live: the flox skill is installed in this environment's claude-code. <b>Leave by 19:30.</b>` },
+    notes: `<b>Emulated transcript</b>, but every command in it is real and <code>nodejs@22.21.1</code> is what the catalog resolves today. If you want this live, run it live: the flox skill is installed in this environment's claude-code. <b>Leave by 24:00.</b>` },
 
-  // 18 ------------------------------------------------------------ 19:30
-  { type: 'statement', t: 19.5,
+  // 25 ------------------------------------------------------------ 24:00
+  { type: 'statement', t: 24,
     title: 'Software is built everywhere now. Make everywhere mean the same thing.',
     sub: 'Declare it once. Lock it. Reproduce it bit-for-bit on every machine, for every human and every agent.',
     notes: `Closing line. Then thank-you slide and questions.` },
 
-  // 19
-  { type: 'links', t: 19.75,
+  // 26
+  { type: 'links', t: 24.25,
     title: 'Thank you.',
     links: [
-      ['Flox', 'flox.dev'],
-      ['Agent skills', 'github.com/flox/flox-skills'],
+      ['Nix and nixpkgs', 'nixos.org · github.com/NixOS/nixpkgs'],
+      ['Flox CLI (GPL-2.0)', 'github.com/flox/flox · flox.dev'],
+      ['Agent skills (Apache-2.0)', 'github.com/flox/flox-skills'],
       ['This demo + deck', 'github.com/justincastilla/deterministic-builds-ATO'],
       ['Me', '@justincastilla'],
     ],
@@ -488,7 +610,41 @@ function render(s, i) {
           <div class="node"><div class="n">flox publish</div><div class="d">share the package</div></div>
         </div>
         <div class="triple"><span>Declarative</span><span>Deterministic</span><span>Verifiable</span></div>
-        <div class="fill"></div><div class="foot"><span>The engine underneath is Nix. You never have to touch it.</span><span>6:00</span></div>`; break;
+        <div class="fill"></div><div class="foot"><span>The engine underneath is Nix. Next: how it works, and where Flox sits on it.</span><span>6:00</span></div>`; break;
+    case 'path':
+      el.innerHTML = `<div class="kicker">${s.kicker}</div><h2>${s.title}</h2>
+        <div class="storepath"><span class="pfx">/nix/store/</span><span class="hash">0kcws5blwbdyxqxjd1w8hjipz61xny3k</span><span class="pfx">-</span><span class="nm">python3-3.14.7</span></div>
+        <div class="legend">
+          <div><b class="hash">hash</b> of the source, every dependency, the build script, the flags, and the target system</div>
+          <div><b class="nm">name</b> for humans only</div>
+        </div>
+        <ul class="big">
+          <li>Nothing goes in <code>/usr/lib</code>. Each build gets its own directory, written once, never edited.</li>
+          <li>Dependencies are absolute store paths fixed at build time. No search path, so nothing to "find".</li>
+          <li>Change any input and you get a new hash beside the old one. Two Pythons never fight.</li>
+        </ul>
+        <div class="fill"></div><div class="foot"><span>The real path of the Python in this repo, from manifest.lock.</span><span>7:45</span></div>`; break;
+    case 'stack':
+      el.innerHTML = `<div class="kicker">${s.kicker}</div><h2>${s.title}</h2>
+        <div class="stackwrap">
+          <div class="layers">
+            <div class="layer you"><div class="n">manifest.toml<small>you</small></div><div class="d">names, version constraints, vars, services, a build recipe, target systems</div></div>
+            <div class="layer flox"><div class="n">flox<small>CLI · GPL-2.0</small></div><div class="d">resolves names to a nixpkgs commit, writes manifest.lock with a store path per system, composes the environment, drives the sandboxed build and the OCI image</div></div>
+            <div class="layer nix"><div class="n">nix<small>LGPL-2.1</small></div><div class="d">evaluates derivations, fetches from a binary cache or builds, owns /nix/store</div></div>
+            <div class="layer pkgs"><div class="n">nixpkgs<small>MIT</small></div><div class="d">100,000+ package recipes in one git repository, pinned by commit</div></div>
+          </div>
+          <div class="side">
+            <h3>Flox adds</h3>
+            <ul><li>TOML instead of the Nix language</li><li>Version constraints, resolved against an index of every nixpkgs revision</li><li>One lock for every system</li><li>Vars, services, build, containerize in the same file</li><li>Push and pull whole environments</li></ul>
+            <h3>Flox does not change</h3>
+            <ul><li>The store</li><li>The hashes</li><li>The packages</li></ul>
+          </div>
+        </div>
+        <div class="fill"></div><div class="foot"><span>Every store path in manifest.lock is one nix build away, with or without Flox.</span><span>10:30</span></div>`; break;
+    case 'open':
+      el.innerHTML = `<div class="kicker">${s.kicker}</div><h2>${s.title}</h2>
+        <div class="oss">${s.rows.map(r=>`<div class="name">${r[0]}</div><div class="lic">${r[1]}</div><div class="what">${r[2]}</div><div class="repo">${r[3]}</div>`).join('')}</div>
+        <div class="fill"></div>${foot(s.foot)}`; break;
     case 'links':
       el.innerHTML = `<h1>${s.title}</h1><ul class="big">${s.links.map(l=>`<li>${l[0]}<small>${l[1]}</small></li>`).join('')}</ul>`; break;
     case 'term': {

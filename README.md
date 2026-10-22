@@ -1,6 +1,6 @@
 # One Environment, N Machines: Deterministic Builds for Humans and Agents
 
-Demo repository and slide deck for a 20 minute talk at
+Demo repository and slide deck for a 25 minute talk at
 [All Things Open 2026](https://www.allthingsopen.org/) (Raleigh, October 19 to 20).
 An earlier 5 minute version was given at WeAreDevelopers World Congress NA 2026.
 
@@ -14,6 +14,7 @@ An earlier 5 minute version was given at WeAreDevelopers World Congress NA 2026.
 app.py                    tiny HTTP service that reports exactly what it was built from
 scripts/sbom.py           SPDX 2.3 SBOM derived from manifest.lock (not a scan)
 slides/index.html         the deck, self contained, no network needed on stage
+slides/script.md          the spoken script, one section per slide, with cue marks for each command
 .github/workflows/ci.yml  "machine 2 of 3": an x86_64-linux runner activating the same lock
 ```
 
@@ -35,6 +36,21 @@ flox build                             # hermetic (sandbox = "pure") build
 flox containerize --runtime docker     # OCI image, no Dockerfile
 docker run --rm -v "$PWD:/w" -w /w deterministic-builds-ato:latest python3 app.py --report
 python3 scripts/sbom.py | jq '.packages[] | {name, versionInfo, licenseConcluded}'
+```
+
+Under the hood (plain Nix, no Flox involved; needs `nix-command` and `flakes`
+in `experimental-features`):
+
+```sh
+flox activate -- sh -c 'realpath "$(which python3)"'       # /nix/store/0kcws5…-python3-3.14.7/bin/python3.14
+nix-store -q --references /nix/store/0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7 | head -6
+nix-store -q --requisites /nix/store/0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7 | wc -l   # 51: the closure
+nix derivation show "$(nix-store -q --deriver /nix/store/0kcws5blwbdyxqxjd1w8hjipz61xny3k-python3-3.14.7)" \
+  | jq '.[] | {system, builder, inputDrvs: (.inputDrvs|length), inputSrcs: (.inputSrcs|length), out: .outputs.out.path}'
+
+# The lock is a pointer into nixpkgs. Plain nix reproduces the exact same store path:
+jq -r '.packages[] | select(.install_id=="python3" and .system=="aarch64-darwin") | .locked_url, .attr_path, .outputs.out' .flox/env/manifest.lock
+nix build 'github:NixOS/nixpkgs/7fd4004d0511991fff3a0524856a9be09e28c5f0#python3' --no-link --print-out-paths
 ```
 
 Same lock, three systems:
@@ -61,8 +77,10 @@ Terminal slides type each command when you press `→`, then reveal the output.
 | `?` | help |
 
 Every terminal output in the deck was captured from a real run of this
-repository on 2026-10-16 with flox 1.18.0. Three things are emulated and
-marked as such in the speaker notes:
+repository on 2026-10-16 with flox 1.18.0; the plain `nix` commands in the
+"Under the hood" section were captured on 2026-10-17 with nix 2.31.5 against
+the same `manifest.lock`. Three things are emulated and marked as such in the
+speaker notes:
 
 - The `ci-runner` and `agent-sandbox` panes on the three machine slide. Their
   versions and store paths are the real ones from `manifest.lock`; the machines
@@ -72,7 +90,7 @@ marked as such in the speaker notes:
 - The `claude -p ...` transcript. Every command in it is real and `nodejs@22.21.1`
   is what the catalog resolves today.
 
-## Talk outline (20 min)
+## Talk outline (25 min)
 
 | Time | Section |
 |------|---------|
@@ -81,8 +99,13 @@ marked as such in the speaker notes:
 | 3:00 | What setup looks like today: four machines, four install stories |
 | 4:30 | Two problems: same build everywhere, same run wherever it lands next |
 | 6:00 | The fix: declare it, don't script it (manifest, lock, closure) |
-| 8:00 | Demo 1: one file |
-| 12:00 | Demo 2: three machines, one hash |
-| 15:00 | Demo 3: the artifact and the receipt (build, containerize, SBOM) |
-| 18:00 | Humans and agents share one definition |
-| 19:30 | Takeaway and links |
+| 7:30 | Under the hood: how Nix works (store paths, references, closures, derivations) |
+| 9:45 | What Nix gives you and what it asks of you; the alternatives |
+| 10:30 | Flox on top of Nix: what it adds, what it leaves alone |
+| 11:30 | Same lock, plain `nix build`, same store path |
+| 12:00 | What is open source (Nix, nixpkgs, flox, flox-skills) and what is hosted |
+| 12:30 | Demo 1: one file |
+| 16:30 | Demo 2: three machines, one hash |
+| 19:30 | Demo 3: the artifact and the receipt (build, containerize, SBOM) |
+| 22:30 | Humans and agents share one definition |
+| 24:00 | Takeaway and links |
